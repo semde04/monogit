@@ -1,0 +1,31 @@
+{
+  "name": "lostfound-api",
+  "version": "1.0.0",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "node --env-file=.env --watch src/server.ts",
+    "start": "node --env-file=.env src/server.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "argon2": "^0.41.0",
+    "cors": "^2.8.5",
+    "express": "^5.0.0",
+    "express-rate-limit": "^7.4.0",
+    "helmet": "^7.1.0",
+    "jose": "^5.9.0",
+    "mongoose": "^8.7.0",
+    "pino": "^9.4.0",
+    "pino-http": "^10.3.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.7.0",
+    "typescript": "^5.8.3"
+  }
+}
