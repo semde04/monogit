@@ -8,6 +8,6 @@ const router = Router();
 
 router.use(authenticate);
 router.get('/claims/:claimId', getMessages);
-router.post('/claims/:claimId', validateBody(createMessageSchema), postMessage);
+router.post('/', validateBody(createMessageSchema), postMessage);
 
 export default router;

@@ -1,8 +1,10 @@
 import type { RequestHandler } from 'express';
 import { AppError } from '../../shared/errors.ts';
 import { routeParam } from '../../shared/route-param.ts';
+import { itemQuerySchema } from './item.schemas.ts';
 import {
   createItem,
+  closeItem,
   deleteItem,
   getItem,
   listItems,
@@ -14,25 +16,39 @@ function currentUserId(req: Parameters<RequestHandler>[0]): string {
   return req.auth.userId;
 }
 
-export const getItems: RequestHandler = async (_req, res) => {
-  res.json({ items: await listItems() });
+export const getItems: RequestHandler = async (req, res) => {
+  const filters = itemQuerySchema.safeParse(req.query);
+  if (!filters.success) {
+    throw new AppError(
+      'Filtres de recherche invalides.',
+      400,
+      'VALIDATION_ERROR',
+      filters.error.flatten(),
+    );
+  }
+  res.json({ data: await listItems(filters.data) });
 };
 
 export const getItemById: RequestHandler = async (req, res) => {
-  res.json({ item: await getItem(routeParam(req, 'id')) });
+  res.json({ data: { item: await getItem(routeParam(req, 'id')) } });
 };
 
 export const postItem: RequestHandler = async (req, res) => {
   const item = await createItem(req.body, currentUserId(req));
-  res.status(201).json({ item });
+  res.status(201).json({ data: item });
 };
 
 export const patchItem: RequestHandler = async (req, res) => {
   const item = await updateItem(routeParam(req, 'id'), currentUserId(req), req.body);
-  res.json({ item });
+  res.json({ data: item });
 };
 
 export const removeItem: RequestHandler = async (req, res) => {
   await deleteItem(routeParam(req, 'id'), currentUserId(req));
   res.status(204).end();
+};
+
+export const closeItemById: RequestHandler = async (req, res) => {
+  const item = await closeItem(routeParam(req, 'id'), currentUserId(req));
+  res.json({ data: item });
 };

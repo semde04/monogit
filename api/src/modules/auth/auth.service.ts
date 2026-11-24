@@ -49,3 +49,9 @@ export async function loginUser(input: LoginInput) {
     user: { id: user.id, name: user.name, email: user.email },
   };
 }
+
+export async function getCurrentUser(userId: string) {
+  const user = await UserModel.findById(userId).select('_id name email role').lean();
+  if (!user) throw new AppError('Utilisateur introuvable.', 404, 'USER_NOT_FOUND');
+  return user;
+}

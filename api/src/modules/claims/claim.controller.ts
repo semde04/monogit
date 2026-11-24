@@ -9,15 +9,15 @@ function currentUserId(req: Parameters<RequestHandler>[0]): string {
 }
 
 export const getClaims: RequestHandler = async (req, res) => {
-  res.json({ claims: await listClaimsForUser(currentUserId(req)) });
+  res.json({ data: { claims: await listClaimsForUser(currentUserId(req)) } });
 };
 
 export const postClaim: RequestHandler = async (req, res) => {
-  const claim = await createClaim(routeParam(req, 'itemId'), currentUserId(req), req.body);
-  res.status(201).json({ claim });
+  const claim = await createClaim(currentUserId(req), req.body);
+  res.status(201).json({ data: claim });
 };
 
 export const patchClaimStatus: RequestHandler = async (req, res) => {
   const claim = await updateClaimStatus(routeParam(req, 'claimId'), currentUserId(req), req.body);
-  res.json({ claim });
+  res.json({ data: claim });
 };

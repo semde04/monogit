@@ -4,6 +4,7 @@ import { validateBody } from '../../shared/validate.ts';
 import {
   getItemById,
   getItems,
+  closeItemById,
   patchItem,
   postItem,
   removeItem,
@@ -15,6 +16,7 @@ const router = Router();
 router.get('/', getItems);
 router.get('/:id', getItemById);
 router.post('/', authenticate, validateBody(createItemSchema), postItem);
+router.patch('/:id/close', authenticate, closeItemById);
 router.patch('/:id', authenticate, validateBody(updateItemSchema), patchItem);
 router.delete('/:id', authenticate, removeItem);
 

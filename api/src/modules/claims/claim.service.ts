@@ -4,11 +4,8 @@ import { ItemModel } from '../items/item.model.ts';
 import { ClaimModel } from './claim.model.ts';
 import type { CreateClaimInput, UpdateClaimStatusInput } from './claim.schemas.ts';
 
-export async function createClaim(
-  itemId: string,
-  claimantId: string,
-  input: CreateClaimInput,
-) {
+export async function createClaim(claimantId: string, input: CreateClaimInput) {
+  const { itemId } = input;
   if (!isValidObjectId(itemId)) {
     throw new AppError('Objet introuvable.', 404, 'ITEM_NOT_FOUND');
   }
@@ -30,7 +27,7 @@ export async function createClaim(
   return ClaimModel.create({
     item: itemId,
     claimant: claimantId,
-    message: input.message,
+    proofAnswer: input.proofAnswer,
   });
 }
 
@@ -39,8 +36,8 @@ export async function listClaimsForUser(userId: string) {
   return ClaimModel.find({
     $or: [{ claimant: userId }, { item: { $in: ownedItems } }],
   })
-    .populate('item', 'title status owner')
-    .populate('claimant', 'name email')
+    .populate('item', 'title type owner proofQuestion')
+    .populate('claimant', 'name')
     .sort({ createdAt: -1 })
     .lean();
 }

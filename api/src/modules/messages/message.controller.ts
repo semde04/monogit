@@ -9,14 +9,14 @@ function currentUserId(req: Parameters<RequestHandler>[0]): string {
 }
 
 export const getMessages: RequestHandler = async (req, res) => {
-  res.json({ messages: await listMessages(routeParam(req, 'claimId'), currentUserId(req)) });
+  res.json({ data: { messages: await listMessages(routeParam(req, 'claimId'), currentUserId(req)) } });
 };
 
 export const postMessage: RequestHandler = async (req, res) => {
   const message = await createMessage(
-    routeParam(req, 'claimId'),
+    req.body.claimId,
     currentUserId(req),
     req.body,
   );
-  res.status(201).json({ message });
+  res.status(201).json({ data: message });
 };

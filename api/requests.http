@@ -1,0 +1,93 @@
+@base = http://localhost:5000/api/v1
+
+### 1. Inscription du Trouveur (User 1)
+# @name registerUser1
+POST {{base}}/auth/register
+Content-Type: application/json
+
+{
+  "name": "Jean Dupont",
+  "email": "jean.dupont@univ.fr",
+  "password": "Password123!"
+}
+
+### 2. Connexion du Trouveur
+# @name loginUser1
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "jean.dupont@univ.fr",
+  "password": "Password123!"
+}
+
+@tokenUser1 = {{loginUser1.response.body.data.accessToken}}
+@refreshTokenUser1 = {{loginUser1.response.body.data.refreshToken}}
+
+### 3. Profil de l'utilisateur connecté
+GET {{base}}/auth/me
+Authorization: Bearer {{tokenUser1}}
+
+### 4. Déclarer un objet trouvé (avec Question de preuve)
+# @name createFoundItem
+POST {{base}}/items
+Authorization: Bearer {{tokenUser1}}
+Content-Type: application/json
+
+{
+  "title": "Sac à dos noir Targus",
+  "description": "Trouvé au 2ème étage de la bibliothèque universitaire.",
+  "type": "FOUND",
+  "category": "BAGS",
+  "location": "Bibliothèque Universitaire",
+  "proofQuestion": "Quelle est la marque de la gourde à l'intérieur ?"
+}
+
+@itemId = {{createFoundItem.response.body.data._id}}
+
+### 5. Rechercher des objets (Filtrage et Recherche textuelle)
+GET {{base}}/items?search=sac&category=BAGS&type=FOUND
+
+### 6. Inscription du Chercheur (User 2)
+# @name loginUser2
+POST {{base}}/auth/register
+Content-Type: application/json
+
+{
+  "name": "Marie Curie",
+  "email": "marie.curie@univ.fr",
+  "password": "Password123!"
+}
+
+@tokenUser2 = {{loginUser2.response.body.data.accessToken}}
+
+### 7. Soumettre une réclamation (Réponse à la preuve)
+# @name createClaim
+POST {{base}}/claims
+Authorization: Bearer {{tokenUser2}}
+Content-Type: application/json
+
+{
+  "itemId": "{{itemId}}",
+  "proofAnswer": "Une gourde bleue Decathlon"
+}
+
+@claimId = {{createClaim.response.body.data._id}}
+
+### 8. Répondre dans le chat privé de la réclamation
+POST {{base}}/messages
+Authorization: Bearer {{tokenUser2}}
+Content-Type: application/json
+
+{
+  "claimId": "{{claimId}}",
+  "text": "Bonjour, je peux passer la récupérer cet après-midi ?"
+}
+
+### 9. Test de la rotation du jeton de rafraîchissement
+POST {{base}}/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshTokenUser1}}"
+}

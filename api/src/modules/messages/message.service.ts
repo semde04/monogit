@@ -36,6 +36,6 @@ export async function createMessage(
   return MessageModel.create({
     claim: claimId,
     sender: senderId,
-    body: input.body,
+    body: input.text,
   });
 }
