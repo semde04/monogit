@@ -9,6 +9,7 @@ import authRoutes from './modules/auth/auth.routes.ts';
 import itemRoutes from './modules/items/item.routes.ts';
 import claimRoutes from './modules/claims/claim.routes.ts';
 import messageRoutes from './modules/messages/message.routes.ts';
+import adminRoutes from './modules/admin/admin.routes.ts';
 import { AppError } from './shared/errors.ts';
 import { errorHandler } from './shared/error-handler.ts';
 
@@ -33,7 +34,7 @@ export function createApp() {
       legacyHeaders: false,
     }),
   );
-  app.use(express.json({ limit: '1mb' }));
+  app.use(express.json({ limit: '1.2mb' }));
 
   app.get('/api/v1/health', (_req, res) => {
     res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
@@ -42,6 +43,7 @@ export function createApp() {
   app.use('/api/v1/items', itemRoutes);
   app.use('/api/v1/claims', claimRoutes);
   app.use('/api/v1/messages', messageRoutes);
+  app.use('/api/v1/admin', adminRoutes);
 
   app.use((_req, _res, next) => {
     next(new AppError('Route introuvable.', 404, 'NOT_FOUND'));

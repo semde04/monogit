@@ -20,6 +20,7 @@ export function listItems(filters: ItemFilters = {}) {
     ];
   }
   query.isClosed = { $ne: true };
+  query.isRemoved = { $ne: true };
   return ItemModel.find(query).sort({ createdAt: -1 }).lean();
 }
 
@@ -28,7 +29,9 @@ export async function getItem(itemId: string) {
     throw new AppError('Objet introuvable.', 404, 'ITEM_NOT_FOUND');
   }
   const item = await ItemModel.findById(itemId).lean();
-  if (!item) throw new AppError('Objet introuvable.', 404, 'ITEM_NOT_FOUND');
+  if (!item || item.isRemoved) {
+    throw new AppError('Objet introuvable.', 404, 'ITEM_NOT_FOUND');
+  }
   return item;
 }
 

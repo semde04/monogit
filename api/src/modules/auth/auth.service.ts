@@ -9,6 +9,9 @@ export async function registerUser(input: RegisterInput) {
   if (await UserModel.exists({ email })) {
     throw new AppError('Cette adresse courriel est déjà utilisée.', 409, 'EMAIL_TAKEN');
   }
+  if (await UserModel.exists({ matricule: input.matricule })) {
+    throw new AppError('Ce matricule est déjà associé à un compte.', 409, 'MATRICULE_TAKEN');
+  }
 
   const passwordHash = await argon2.hash(input.password);
   let user;
@@ -16,6 +19,7 @@ export async function registerUser(input: RegisterInput) {
     user = await UserModel.create({
       name: input.name,
       email,
+      matricule: input.matricule,
       passwordHash,
     });
   } catch (error) {
@@ -23,7 +27,14 @@ export async function registerUser(input: RegisterInput) {
       typeof error === 'object' &&
       error !== null &&
       'code' in error &&
-      error.code === 11000
+      error.code === 11000 && 'keyPattern' in error &&
+      typeof error.keyPattern === 'object' && error.keyPattern !== null &&
+      'matricule' in error.keyPattern
+    ) {
+      throw new AppError('Ce matricule est déjà associé à un compte.', 409, 'MATRICULE_TAKEN');
+    }
+    if (
+      typeof error === 'object' && error !== null && 'code' in error && error.code === 11000
     ) {
       throw new AppError('Cette adresse courriel est déjà utilisée.', 409, 'EMAIL_TAKEN');
     }
@@ -33,7 +44,7 @@ export async function registerUser(input: RegisterInput) {
   const tokens = await issueTokenPair(user.id);
   return {
     ...tokens,
-    user: { id: user.id, name: user.name, email: user.email },
+    user: { id: user.id, name: user.name, email: user.email, matricule: user.matricule, role: user.role },
   };
 }
 
@@ -46,12 +57,26 @@ export async function loginUser(input: LoginInput) {
   const tokens = await issueTokenPair(user.id);
   return {
     ...tokens,
-    user: { id: user.id, name: user.name, email: user.email },
+    user: { id: user.id, name: user.name, email: user.email, matricule: user.matricule, role: user.role },
   };
 }
 
 export async function getCurrentUser(userId: string) {
-  const user = await UserModel.findById(userId).select('_id name email role').lean();
+  const user = await UserModel.findById(userId).select('_id name email matricule role').lean();
   if (!user) throw new AppError('Utilisateur introuvable.', 404, 'USER_NOT_FOUND');
   return user;
+}
+
+export async function addDeviceInstallation(userId: string, installationId: string) {
+  await UserModel.updateOne(
+    { _id: userId },
+    { $addToSet: { firebaseInstallationIds: installationId } },
+  );
+}
+
+export async function removeDeviceInstallation(userId: string, installationId: string) {
+  await UserModel.updateOne(
+    { _id: userId },
+    { $pull: { firebaseInstallationIds: installationId } },
+  );
 }

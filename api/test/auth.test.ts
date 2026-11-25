@@ -48,4 +48,28 @@ describe('Auth API', () => {
 
     assert.equal(reused.status, 401);
   });
+
+  it('normalise le matricule, garde le rôle utilisateur et refuse les doublons', async () => {
+    const first = await api.post('/api/v1/auth/register').send({
+      name: 'Étudiant',
+      email: 'student@univ.fr',
+      matricule: '  ab-123  ',
+      password: 'Password123!',
+      role: 'admin',
+    });
+
+    assert.equal(first.status, 201);
+    assert.equal(first.body.data.user.matricule, 'AB-123');
+    assert.equal(first.body.data.user.role, 'user');
+
+    const duplicate = await api.post('/api/v1/auth/register').send({
+      name: 'Autre étudiant',
+      email: 'other@univ.fr',
+      matricule: 'ab-123',
+      password: 'Password123!',
+    });
+
+    assert.equal(duplicate.status, 409);
+    assert.equal(duplicate.body.error, 'MATRICULE_TAKEN');
+  });
 });

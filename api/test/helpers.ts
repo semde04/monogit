@@ -42,11 +42,12 @@ export async function closeTestDatabase() {
 }
 
 export async function registerUser(email = 'user1@univ.fr') {
+  const matricule = `TEST-${email.replace(/[^a-zA-Z0-9]/g, '').toUpperCase()}`;
   const response = await api
     .post('/api/v1/auth/register')
-    .send({ name: 'Test User', email, password: 'Password123!' });
+    .send({ name: 'Test User', email, matricule, password: 'Password123!' });
   return response.body.data as {
-    user: { id: string; email: string };
+    user: { id: string; email: string; matricule: string; role: string };
     accessToken: string;
     refreshToken: string;
   };

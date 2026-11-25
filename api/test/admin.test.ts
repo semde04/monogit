@@ -1,0 +1,68 @@
+import assert from 'node:assert/strict';
+import { after, before, beforeEach, describe, it } from 'node:test';
+import { UserModel } from '../src/modules/auth/user.model.ts';
+import {
+  api,
+  bearer,
+  closeTestDatabase,
+  connectTestDatabase,
+  registerUser,
+  resetDatabase,
+} from './helpers.ts';
+
+describe('Admin API', () => {
+  before(connectTestDatabase);
+  beforeEach(resetDatabase);
+  after(closeTestDatabase);
+
+  it('refuse l’accès au tableau de bord pour un compte étudiant', async () => {
+    const student = await registerUser('student@univ.fr');
+    const response = await api
+      .get('/api/v1/admin/overview')
+      .set(bearer(student.accessToken));
+
+    assert.equal(response.status, 403);
+  });
+
+  it('permet à un administrateur de retirer puis rétablir une annonce', async () => {
+    const owner = await registerUser('owner@univ.fr');
+    const created = await api
+      .post('/api/v1/items')
+      .set(bearer(owner.accessToken))
+      .send({
+        title: 'Sac à dos bleu',
+        description: 'Trouvé près de la bibliothèque',
+        type: 'FOUND',
+        category: 'OTHER',
+        location: 'Bibliothèque',
+      });
+    assert.equal(created.status, 201);
+
+    const admin = await registerUser('admin@univ.fr');
+    await UserModel.updateOne({ email: 'admin@univ.fr' }, { $set: { role: 'admin' } });
+
+    const overview = await api
+      .get('/api/v1/admin/overview')
+      .set(bearer(admin.accessToken));
+    assert.equal(overview.status, 200);
+    assert.equal(overview.body.data.stats.users, 2);
+
+    const removed = await api
+      .patch(`/api/v1/admin/items/${created.body.data._id}/moderation`)
+      .set(bearer(admin.accessToken))
+      .send({ isRemoved: true, reason: 'Annonce à vérifier' });
+    assert.equal(removed.status, 200);
+    assert.equal(removed.body.data.isRemoved, true);
+
+    const publicList = await api.get('/api/v1/items');
+    assert.equal(publicList.status, 200);
+    assert.equal(publicList.body.data.length, 0);
+
+    const restored = await api
+      .patch(`/api/v1/admin/items/${created.body.data._id}/moderation`)
+      .set(bearer(admin.accessToken))
+      .send({ isRemoved: false });
+    assert.equal(restored.status, 200);
+    assert.equal(restored.body.data.isRemoved, false);
+  });
+});

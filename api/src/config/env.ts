@@ -8,6 +8,7 @@ const envSchema = z.object({
   ACCESS_TOKEN_TTL: z.string().default('15m'),
   REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(30),
   CORS_ORIGIN: z.string().default('*'),
+  FIREBASE_PROJECT_ID: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

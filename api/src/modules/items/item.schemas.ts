@@ -7,6 +7,11 @@ export const createItemSchema = z.object({
   location: z.string().trim().min(1).max(200),
   type: z.enum(['FOUND', 'LOST']),
   proofQuestion: z.string().trim().min(1).max(500).optional(),
+  imageData: z
+    .string()
+    .max(800_000, 'La photo est trop volumineuse.')
+    .regex(/^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$/)
+    .optional(),
 });
 
 export const updateItemSchema = createItemSchema.partial().refine(

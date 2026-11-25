@@ -2,6 +2,8 @@ import { isValidObjectId } from 'mongoose';
 import { AppError } from '../../shared/errors.ts';
 import { ItemModel } from '../items/item.model.ts';
 import { ClaimModel } from './claim.model.ts';
+import { UserModel } from '../auth/user.model.ts';
+import { sendPushToUser } from '../../shared/push-notifications.ts';
 import type { CreateClaimInput, UpdateClaimStatusInput } from './claim.schemas.ts';
 
 export async function createClaim(claimantId: string, input: CreateClaimInput) {
@@ -9,8 +11,11 @@ export async function createClaim(claimantId: string, input: CreateClaimInput) {
   if (!isValidObjectId(itemId)) {
     throw new AppError('Objet introuvable.', 404, 'ITEM_NOT_FOUND');
   }
-  const item = await ItemModel.findById(itemId).select('_id owner');
+  const item = await ItemModel.findById(itemId).select('_id owner isRemoved title');
   if (!item) throw new AppError('Objet introuvable.', 404, 'ITEM_NOT_FOUND');
+  if (item.isRemoved) {
+    throw new AppError('Cette annonce a été retirée par la modération.', 404, 'ITEM_NOT_FOUND');
+  }
   if (item.owner.toString() === claimantId) {
     throw new AppError('Vous ne pouvez pas réclamer votre propre objet.', 400, 'SELF_CLAIM');
   }
@@ -24,11 +29,24 @@ export async function createClaim(claimantId: string, input: CreateClaimInput) {
     throw new AppError('Une réclamation est déjà en attente.', 409, 'CLAIM_ALREADY_EXISTS');
   }
 
-  return ClaimModel.create({
+  const claim = await ClaimModel.create({
     item: itemId,
     claimant: claimantId,
     proofAnswer: input.proofAnswer,
   });
+
+  const claimant = await UserModel.findById(claimantId).select('name').lean();
+  if (claimant) {
+    void sendPushToUser(
+      item.owner.toString(),
+      {
+        title: 'Nouvelle réclamation',
+        body: `${claimant.name} a réclamé « ${item.title} »`,
+      },
+      { type: 'claim', claimId: claim.id, itemId: item.id },
+    );
+  }
+  return claim;
 }
 
 export async function listClaimsForUser(userId: string) {

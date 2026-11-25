@@ -8,6 +8,7 @@
   "scripts": {
     "dev": "node --env-file=.env --watch src/server.ts",
     "start": "node src/server.ts",
+    "create-admin": "node --env-file=.env src/scripts/create-admin.ts",
     "typecheck": "tsc --noEmit",
     "test": "node --env-file=.env.test --test --test-concurrency=1 \"test/**/*.test.ts\""
   },
@@ -16,6 +17,7 @@
     "cors": "^2.8.5",
     "express": "^5.0.0",
     "express-rate-limit": "^7.4.0",
+    "firebase-admin": "^14.5.1",
     "helmet": "^7.1.0",
     "jose": "^5.9.0",
     "mongoose": "^8.7.0",
