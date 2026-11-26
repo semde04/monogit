@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -86,11 +88,34 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final Logout _logout;
 
   Future<void> _onStarted(AuthStarted event, Emitter<AuthState> emit) async {
-    final result = await _repository.currentUser();
-    result.fold(
-      (user) => emit(AuthState(status: AuthStatus.authenticated, user: user)),
-      (_) => emit(const AuthState(status: AuthStatus.unauthenticated)),
-    );
+    try {
+      final result = await _repository
+          .currentUser()
+          .timeout(const Duration(seconds: 15));
+      result.fold(
+        (user) => emit(AuthState(status: AuthStatus.authenticated, user: user)),
+        (failure) => emit(
+          AuthState(
+            status: AuthStatus.unauthenticated,
+            failure: failure.code == 'NO_SESSION' ? null : failure,
+          ),
+        ),
+      );
+    } on TimeoutException {
+      emit(
+        const AuthState(
+          status: AuthStatus.unauthenticated,
+          failure: NetworkFailure(),
+        ),
+      );
+    } catch (_) {
+      emit(
+        const AuthState(
+          status: AuthStatus.unauthenticated,
+          failure: UnknownFailure(),
+        ),
+      );
+    }
   }
 
   Future<void> _onLogin(
@@ -101,13 +126,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     final result = await _login(event.email.trim(), event.password);
     await result.fold<Future<void>>(
       (session) async {
-        final current = await _repository.currentUser();
-        current.fold(
-          (user) =>
-              emit(AuthState(status: AuthStatus.authenticated, user: user)),
-          (_) => emit(
-            AuthState(status: AuthStatus.authenticated, user: session.user),
-          ),
+        final user = await _resolveUserOrSession(session.user);
+        emit(
+          AuthState(status: AuthStatus.authenticated, user: user),
         );
       },
       (failure) async => emit(state.copyWith(loading: false, failure: failure)),
@@ -127,13 +148,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     );
     await result.fold<Future<void>>(
       (session) async {
-        final current = await _repository.currentUser();
-        current.fold(
-          (user) =>
-              emit(AuthState(status: AuthStatus.authenticated, user: user)),
-          (_) => emit(
-            AuthState(status: AuthStatus.authenticated, user: session.user),
-          ),
+        final user = await _resolveUserOrSession(session.user);
+        emit(
+          AuthState(status: AuthStatus.authenticated, user: user),
         );
       },
       (failure) async => emit(state.copyWith(loading: false, failure: failure)),
@@ -148,5 +165,19 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       await _logout();
     } catch (_) {}
     emit(const AuthState(status: AuthStatus.unauthenticated));
+  }
+
+  Future<AppUser> _resolveUserOrSession(AppUser sessionUser) async {
+    try {
+      final current = await _repository
+          .currentUser()
+          .timeout(const Duration(seconds: 15));
+      final user = current.fold((user) => user, (_) => sessionUser);
+      return user;
+    } catch (_) {
+      // Login/register already returned a valid session. Keep it so the
+      // router can continue, even if the optional profile refresh fails.
+      return sessionUser;
+    }
   }
 }
