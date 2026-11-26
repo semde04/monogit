@@ -36,11 +36,19 @@ GoRouter createAppRouter(AuthBloc auth) => GoRouter(
     final isPublic =
         path == '/login' || path == '/register' || path == '/splash';
     if (authState.status == AuthStatus.checking) {
-      return path == '/splash' ? null : '/splash';
+      if (path == '/splash') return null;
+      final requestedPath = path == '/admin'
+          ? '/admin'
+          : state.uri.queryParameters['from'];
+      return requestedPath == '/admin'
+          ? '/splash?from=%2Fadmin'
+          : '/splash';
     }
     if (authState.status == AuthStatus.unauthenticated) {
       if (isPublic && path != '/splash') return null;
-      return path == '/admin' ? '/login?from=%2Fadmin' : '/login';
+      final requestedPath =
+          path == '/admin' || state.uri.queryParameters['from'] == '/admin';
+      return requestedPath ? '/login?from=%2Fadmin' : '/login';
     }
     if (path == '/admin' && authState.user?.role != 'admin') {
       return '/discover';
