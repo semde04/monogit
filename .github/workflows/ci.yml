@@ -82,6 +82,12 @@ jobs:
         env:
           API_BASE_URL: ${{ secrets.API_BASE_URL }}
         run: flutter build web --release --dart-define=API_BASE_URL="$API_BASE_URL"
+      - name: Vérifier la clé de service Firebase
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          node -e "const key = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT); if (key.type !== 'service_account' || !key.private_key) process.exit(1); console.log('Clé JSON valide pour le projet', key.project_id)"
       - name: Déploiement Firebase Hosting
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         env:
@@ -91,4 +97,4 @@ jobs:
           printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$key_file"
           trap 'rm -f "$key_file"' EXIT
           export GOOGLE_APPLICATION_CREDENTIALS="$key_file"
-          npx --yes firebase-tools@latest deploy --only hosting --project lost-found-74fa4 --non-interactive
+          npx --yes firebase-tools@15.22.3 deploy --only hosting --project lost-found-74fa4 --non-interactive --debug
