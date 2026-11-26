@@ -41,6 +41,12 @@ describe('Claims and private messages API', () => {
       .send({ itemId, proofAnswer: 'Un carnet rouge' });
     assert.equal(claim.status, 201);
     claimId = claim.body.data._id as string;
+
+    const accepted = await api
+      .patch(`/api/v1/claims/${claimId}/status`)
+      .set(bearer(ownerToken))
+      .send({ status: 'accepted' });
+    assert.equal(accepted.status, 200);
   });
   after(closeTestDatabase);
 
@@ -74,5 +80,29 @@ describe('Claims and private messages API', () => {
       .get(`/api/v1/messages/claims/${claimId}`)
       .set(bearer(outsiderToken));
     assert.equal(forbidden.status, 404);
+  });
+
+  it('refuse à un tiers l’accès à une réclamation restituée', async () => {
+    const ownerConfirmation = await api
+      .post(`/api/v1/claims/${claimId}/confirm-return`)
+      .set(bearer(ownerToken));
+    assert.equal(ownerConfirmation.status, 200);
+    const claimantConfirmation = await api
+      .post(`/api/v1/claims/${claimId}/confirm-return`)
+      .set(bearer(claimantToken));
+    assert.equal(claimantConfirmation.status, 200);
+
+    const outsiderToken = (await registerUser('reader@univ.fr')).accessToken;
+    const forbidden = await api
+      .post(`/api/v1/claims/${claimId}/confirm-return`)
+      .set(bearer(outsiderToken));
+    assert.equal(forbidden.status, 404);
+  });
+
+  it('borne la taille des pages de réclamations', async () => {
+    const response = await api
+      .get('/api/v1/claims?limit=100')
+      .set(bearer(ownerToken));
+    assert.equal(response.status, 422);
   });
 });

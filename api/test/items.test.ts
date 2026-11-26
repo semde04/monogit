@@ -66,4 +66,40 @@ describe('Items API & Security BOLA', () => {
 
     assert.equal(response.status, 403);
   });
+
+  it('ne publie pas la question de preuve dans les endpoints publics', async () => {
+    const created = await api
+      .post('/api/v1/items')
+      .set(bearer(token1))
+      .send({
+        title: 'Sac rouge',
+        description: 'Trouvé à la bibliothèque',
+        type: 'FOUND',
+        category: 'BAGS',
+        location: 'Bibliothèque',
+        proofQuestion: 'Quelle est la couleur du carnet ?',
+      });
+    assert.equal(created.status, 201);
+    const itemId = created.body.data._id as string;
+
+    const detail = await api.get(`/api/v1/items/${itemId}`);
+    assert.equal(detail.status, 200);
+    assert.equal(detail.body.data.item.proofQuestion, undefined);
+
+    const list = await api.get('/api/v1/items');
+    assert.equal(list.status, 200);
+    assert.equal(list.body.data[0].proofQuestion, undefined);
+  });
+
+  it('borne la pagination de la liste publique', async () => {
+    const response = await api.get('/api/v1/items?limit=100');
+    assert.equal(response.status, 422);
+  });
+
+  it('renvoie des métadonnées de pagination', async () => {
+    const response = await api.get('/api/v1/items?page=1&limit=5');
+    assert.equal(response.status, 200);
+    assert.equal(response.body.meta.page, 1);
+    assert.equal(response.body.meta.limit, 5);
+  });
 });

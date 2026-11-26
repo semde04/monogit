@@ -47,6 +47,12 @@ describe('Auth API', () => {
       .send({ refreshToken: tokens.refreshToken });
 
     assert.equal(reused.status, 401);
+    assert.equal(reused.body.error, 'REFRESH_TOKEN_REUSED');
+
+    const rotatedNowInvalid = await api
+      .post('/api/v1/auth/refresh')
+      .send({ refreshToken: refreshed.body.data.refreshToken });
+    assert.equal(rotatedNowInvalid.status, 401);
   });
 
   it('normalise le matricule, garde le rôle utilisateur et refuse les doublons', async () => {
