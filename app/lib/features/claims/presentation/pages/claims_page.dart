@@ -193,44 +193,55 @@ class _ClaimCard extends StatelessWidget {
               ],
             ],
             const SizedBox(height: 12),
-            Row(
-              children: [
-                if (incoming && claim.status == 'pending') ...[
-                  OutlinedButton(
+            if (incoming && claim.status == 'pending')
+              Wrap(
+                spacing: 10,
+                runSpacing: 8,
+                children: [
+                  OutlinedButton.icon(
                     onPressed: busy
                         ? null
                         : () => context.read<ClaimsBloc>().add(
                             ClaimStatusChanged(claim.id, 'rejected'),
                           ),
-                    child: const Text('Refuser'),
+                    icon: const Icon(Icons.close, size: 18),
+                    label: const Text('Refuser'),
                   ),
-                  const SizedBox(width: 8),
-                  FilledButton(
+                  FilledButton.icon(
                     onPressed: busy
                         ? null
                         : () => context.read<ClaimsBloc>().add(
                             ClaimStatusChanged(claim.id, 'accepted'),
                           ),
-                    child: busy
+                    icon: busy
                         ? const SizedBox.square(
                             dimension: 16,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Text('Accepter'),
+                        : const Icon(Icons.check, size: 18),
+                    label: const Text('Accepter'),
                   ),
-                  const Spacer(),
-                ] else
-                  const Spacer(),
-                if (claim.status == 'accepted' || claim.status == 'returned')
-                  TextButton.icon(
-                    onPressed: () => context.push('/chat/${claim.id}'),
-                    icon: const Icon(Icons.chat_bubble_outline, size: 18),
-                    label: Text(claim.status == 'returned' ? 'Historique' : 'Discuter'),
-                  )
-                else
-                  const Text('Discussion après acceptation', style: TextStyle(fontSize: 12, color: Colors.black54)),
-              ],
-            ),
+                ],
+              )
+            else if (claim.status == 'accepted' || claim.status == 'returned')
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: () => context.push('/chat/${claim.id}'),
+                  icon: const Icon(Icons.chat_bubble_outline, size: 18),
+                  label: Text(
+                    claim.status == 'returned' ? 'Historique' : 'Discuter',
+                  ),
+                ),
+              )
+            else
+              const Align(
+                alignment: Alignment.centerRight,
+                child: Text(
+                  'Discussion après acceptation',
+                  style: TextStyle(fontSize: 12, color: Colors.black54),
+                ),
+              ),
           ],
         ),
       ),
