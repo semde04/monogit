@@ -64,6 +64,9 @@ jobs:
         working-directory: app
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
@@ -81,9 +84,11 @@ jobs:
         run: flutter build web --release --dart-define=API_BASE_URL="$API_BASE_URL"
       - name: Déploiement Firebase Hosting
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        uses: w9jds/firebase-action@master
-        with:
-          args: deploy --only hosting --project lost-found-74fa4
         env:
-          GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          PROJECT_PATH: app
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          key_file="$RUNNER_TEMP/firebase-service-account.json"
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$key_file"
+          trap 'rm -f "$key_file"' EXIT
+          export GOOGLE_APPLICATION_CREDENTIALS="$key_file"
+          npx --yes firebase-tools@latest deploy --only hosting --project lost-found-74fa4 --non-interactive
