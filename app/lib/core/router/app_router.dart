@@ -39,12 +39,19 @@ GoRouter createAppRouter(AuthBloc auth) => GoRouter(
       return path == '/splash' ? null : '/splash';
     }
     if (authState.status == AuthStatus.unauthenticated) {
-      return isPublic && path != '/splash' ? null : '/login';
+      if (isPublic && path != '/splash') return null;
+      return path == '/admin' ? '/login?from=%2Fadmin' : '/login';
     }
     if (path == '/admin' && authState.user?.role != 'admin') {
       return '/discover';
     }
-    if (isPublic) return '/discover';
+    if (isPublic) {
+      final requestedPath = state.uri.queryParameters['from'];
+      if (requestedPath == '/admin' && authState.user?.role == 'admin') {
+        return '/admin';
+      }
+      return '/discover';
+    }
     return null;
   },
   routes: [
@@ -54,6 +61,7 @@ GoRouter createAppRouter(AuthBloc auth) => GoRouter(
       path: '/register',
       builder: (context, state) => const RegisterPage(),
     ),
+    GoRoute(path: '/admin', builder: (context, state) => const AdminPage()),
     ShellRoute(
       builder: (context, state, child) => MainShell(child: child),
       routes: [
@@ -68,10 +76,6 @@ GoRouter createAppRouter(AuthBloc auth) => GoRouter(
         GoRoute(
           path: '/profile',
           builder: (context, state) => const ProfilePage(),
-        ),
-        GoRoute(
-          path: '/admin',
-          builder: (context, state) => const AdminPage(),
         ),
         GoRoute(
           path: '/items/new',

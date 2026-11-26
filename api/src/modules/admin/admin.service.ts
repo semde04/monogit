@@ -15,7 +15,6 @@ export async function getAdminOverview() {
       UserModel.find()
         .select('_id name email matricule role createdAt')
         .sort({ createdAt: -1 })
-        .limit(20)
         .lean(),
       ItemModel.find()
         .select('title description category location type imageData isClosed isRemoved moderationReason moderatedAt owner createdAt')

@@ -67,9 +67,21 @@ class _AdminView extends StatelessWidget {
             onRefresh: () async => context.read<ModerationBloc>().add(
               const AdminOverviewRequested(),
             ),
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(18, 8, 18, 32),
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1280),
+                child: ListView(
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 40),
               children: [
+                Text(
+                  'Portail web de supervision',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: const Color(0xff087765),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 6),
                 Text(
                   'Vue générale',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -109,7 +121,7 @@ class _AdminView extends StatelessWidget {
                   ),
                 const SizedBox(height: 20),
                 Text(
-                  'Comptes récents',
+                  'Étudiants et comptes inscrits (${overview.users.length})',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w800,
                   ),
@@ -120,6 +132,8 @@ class _AdminView extends StatelessWidget {
                 else
                   ...overview.users.map((user) => _UserCard(user: user)),
               ],
+                ),
+              ),
             ),
           );
         },

@@ -46,6 +46,16 @@ class PushNotificationService {
     }
   }
 
+  Future<Map<String, String>?> initialNotificationData() async {
+    if (!_supported) return null;
+    try {
+      final message = await FirebaseMessaging.instance.getInitialMessage();
+      return message == null ? null : Map<String, String>.from(message.data);
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> registerForCurrentUser() async {
     if (!_supported || _syncing) return;
     _syncing = true;

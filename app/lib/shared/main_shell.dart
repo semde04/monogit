@@ -10,7 +10,7 @@ class MainShell extends StatelessWidget {
     final path = GoRouterState.of(context).uri.path;
     final index = path.startsWith('/claims') || path.startsWith('/chat')
         ? 1
-        : path.startsWith('/profile') || path.startsWith('/admin')
+        : path.startsWith('/profile')
         ? 2
         : 0;
     return Scaffold(

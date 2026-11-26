@@ -18,24 +18,27 @@ class _LostFoundAppState extends State<LostFoundApp> {
   late final AuthBloc _auth = getIt<AuthBloc>();
   late final _router = createAppRouter(_auth);
   late final StreamSubscription<AuthState> _authSubscription;
-  bool _openClaimsAfterLogin = false;
+  String? _pendingNotificationPath;
 
   @override
   void initState() {
     super.initState();
     getIt<PushNotificationService>().initialize(
-      onNotificationTap: (_) {
+      onNotificationTap: (message) {
+        final path = _notificationPath(message.data);
         if (_auth.state.status == AuthStatus.authenticated) {
-          _router.go('/claims');
+          _router.go(path);
+        } else {
+          _pendingNotificationPath = path;
         }
       },
     );
     _authSubscription = _auth.stream.listen((state) {
       if (state.status == AuthStatus.authenticated) {
         unawaited(getIt<PushNotificationService>().registerForCurrentUser());
-        if (_openClaimsAfterLogin) {
-          _openClaimsAfterLogin = false;
-          _router.go('/claims');
+        if (_pendingNotificationPath case final path?) {
+          _pendingNotificationPath = null;
+          _router.go(path);
         }
       }
     });
@@ -46,14 +49,22 @@ class _LostFoundAppState extends State<LostFoundApp> {
   }
 
   Future<void> _handleInitialNotification() async {
-    final isClaim = await getIt<PushNotificationService>()
-        .initialNotificationIsClaim();
-    if (!isClaim || !mounted) return;
+    final data = await getIt<PushNotificationService>().initialNotificationData();
+    if (data == null || !mounted) return;
+    final path = _notificationPath(data);
     if (_auth.state.status == AuthStatus.authenticated) {
-      _router.go('/claims');
+      _router.go(path);
     } else {
-      _openClaimsAfterLogin = true;
+      _pendingNotificationPath = path;
     }
+  }
+
+  String _notificationPath(Map<String, dynamic> data) {
+    final itemId = data['itemId']?.toString();
+    if (data['type'] == 'possible_match' && itemId != null && itemId.isNotEmpty) {
+      return '/items/$itemId';
+    }
+    return '/claims';
   }
 
   @override
