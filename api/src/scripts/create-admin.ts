@@ -1,6 +1,6 @@
-import argon2 from 'argon2';
 import { z } from 'zod';
 import { env } from '../config/env.ts';
+import { hashPassword } from '../shared/password.ts';
 import { UserModel } from '../modules/auth/user.model.ts';
 import mongoose from 'mongoose';
 
@@ -22,7 +22,7 @@ async function createAdmin() {
   await UserModel.create({
     name: config.ADMIN_NAME,
     email,
-    passwordHash: await argon2.hash(config.ADMIN_PASSWORD),
+    passwordHash: await hashPassword(config.ADMIN_PASSWORD),
     role: 'admin',
   });
   console.log(`Compte administrateur créé pour ${email}.`);

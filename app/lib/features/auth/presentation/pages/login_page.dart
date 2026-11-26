@@ -148,8 +148,8 @@ class BrandMark extends StatelessWidget {
     mainAxisAlignment: MainAxisAlignment.center,
     children: [
       Container(
-      width: 58,
-      height: 58,
+        width: 58,
+        height: 58,
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.primary,
           borderRadius: BorderRadius.circular(17),

@@ -20,8 +20,16 @@ class ClaimModel {
       Claim(
         id: (json['_id'] ?? json['id'] ?? '').toString(),
         itemId: (itemMap['_id'] ?? itemMap['id'] ?? item ?? '').toString(),
-        itemTitle: itemMap['title']?.toString() ?? json['itemTitleSnapshot']?.toString() ?? receipt['itemTitle']?.toString() ?? 'Objet',
-        itemType: itemMap['type']?.toString() ?? json['itemTypeSnapshot']?.toString() ?? receipt['itemType']?.toString() ?? 'FOUND',
+        itemTitle:
+            itemMap['title']?.toString() ??
+            json['itemTitleSnapshot']?.toString() ??
+            receipt['itemTitle']?.toString() ??
+            'Objet',
+        itemType:
+            itemMap['type']?.toString() ??
+            json['itemTypeSnapshot']?.toString() ??
+            receipt['itemType']?.toString() ??
+            'FOUND',
         proofQuestion: itemMap['proofQuestion']?.toString(),
         claimantId: (claimantMap['_id'] ?? claimantMap['id'] ?? claimant ?? '')
             .toString(),
@@ -33,9 +41,19 @@ class ClaimModel {
             DateTime.now(),
         ownerConfirmedReturn: json['ownerConfirmedReturnAt'] != null,
         claimantConfirmedReturn: json['claimantConfirmedReturnAt'] != null,
-        returnedAt: DateTime.tryParse((json['returnedAt'] ?? receipt['confirmedAt'])?.toString() ?? ''),
-        finderName: (receipt['finder'] is Map<String, dynamic> ? receipt['finder']['name'] : receipt['finderName'])?.toString(),
-        recipientName: (receipt['recipient'] is Map<String, dynamic> ? receipt['recipient']['name'] : receipt['recipientName'])?.toString(),
+        returnedAt: DateTime.tryParse(
+          (json['returnedAt'] ?? receipt['confirmedAt'])?.toString() ?? '',
+        ),
+        finderName:
+            (receipt['finder'] is Map<String, dynamic>
+                    ? receipt['finder']['name']
+                    : receipt['finderName'])
+                ?.toString(),
+        recipientName:
+            (receipt['recipient'] is Map<String, dynamic>
+                    ? receipt['recipient']['name']
+                    : receipt['recipientName'])
+                ?.toString(),
       ),
     );
   }

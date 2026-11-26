@@ -128,11 +128,7 @@ class ClaimsBloc extends Bloc<ClaimsEvent, ClaimsState> {
         state.copyWith(
           busyId: event.id,
           claims: state.claims
-              .map(
-                (item) => item.id == claim.id
-                    ? claim
-                    : item,
-              )
+              .map((item) => item.id == claim.id ? claim : item)
               .toList(),
         ),
       ),
@@ -148,9 +144,13 @@ class ClaimsBloc extends Bloc<ClaimsEvent, ClaimsState> {
     emit(state.copyWith(busyId: event.id, clearFailure: true));
     final result = await _confirmReturn(event.id);
     result.fold(
-      (claim) => emit(state.copyWith(
-        claims: state.claims.map((item) => item.id == claim.id ? claim : item).toList(),
-      )),
+      (claim) => emit(
+        state.copyWith(
+          claims: state.claims
+              .map((item) => item.id == claim.id ? claim : item)
+              .toList(),
+        ),
+      ),
       (failure) => emit(state.copyWith(clearBusy: true, failure: failure)),
     );
     emit(state.copyWith(clearBusy: true));

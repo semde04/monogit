@@ -1,5 +1,6 @@
 import type { RequestHandler } from 'express';
 import { AppError } from '../../shared/errors.ts';
+import { paginationMeta } from '../../shared/pagination.ts';
 import { routeParam } from '../../shared/route-param.ts';
 import { itemQuerySchema } from './item.schemas.ts';
 import {
@@ -21,12 +22,13 @@ export const getItems: RequestHandler = async (req, res) => {
   if (!filters.success) {
     throw new AppError(
       'Filtres de recherche invalides.',
-      400,
+      422,
       'VALIDATION_ERROR',
       filters.error.flatten(),
     );
   }
-  res.json({ data: await listItems(filters.data) });
+  const { items, total } = await listItems(filters.data);
+  res.json({ data: items, meta: paginationMeta(total, filters.data) });
 };
 
 export const getItemById: RequestHandler = async (req, res) => {

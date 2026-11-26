@@ -9,5 +9,7 @@ const messageSchema = new Schema(
   { timestamps: true },
 );
 
+messageSchema.index({ claim: 1, createdAt: 1 });
+
 export type Message = InferSchemaType<typeof messageSchema>;
 export const MessageModel = model('Message', messageSchema);

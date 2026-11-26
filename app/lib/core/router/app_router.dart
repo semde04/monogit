@@ -27,6 +27,15 @@ class _AuthRefresh extends ChangeNotifier {
   }
 }
 
+String? _destination(GoRouterState state) {
+  final from = state.uri.queryParameters['from'];
+  if (from != null && from.startsWith('/') && !from.startsWith('//')) {
+    return from;
+  }
+  if (state.uri.path == '/admin') return '/admin';
+  return null;
+}
+
 GoRouter createAppRouter(AuthBloc auth) => GoRouter(
   initialLocation: '/splash',
   refreshListenable: _AuthRefresh(auth),
@@ -37,26 +46,36 @@ GoRouter createAppRouter(AuthBloc auth) => GoRouter(
         path == '/login' || path == '/register' || path == '/splash';
     if (authState.status == AuthStatus.checking) {
       if (path == '/splash') return null;
-      final requestedPath = path == '/admin'
-          ? '/admin'
-          : state.uri.queryParameters['from'];
-      return requestedPath == '/admin'
-          ? '/splash?from=%2Fadmin'
-          : '/splash';
+      final destination = _destination(state);
+      if (destination == null) return '/splash';
+      return Uri(
+        path: '/splash',
+        queryParameters: {'from': destination},
+      ).toString();
     }
     if (authState.status == AuthStatus.unauthenticated) {
       if (isPublic && path != '/splash') return null;
-      final requestedPath =
-          path == '/admin' || state.uri.queryParameters['from'] == '/admin';
-      return requestedPath ? '/login?from=%2Fadmin' : '/login';
+      final destination = _destination(state);
+      if (destination == null) return '/login';
+      return Uri(
+        path: '/login',
+        queryParameters: {'from': destination},
+      ).toString();
     }
     if (path == '/admin' && authState.user?.role != 'admin') {
       return '/discover';
     }
     if (isPublic) {
-      final requestedPath = state.uri.queryParameters['from'];
-      if (requestedPath == '/admin' && authState.user?.role == 'admin') {
-        return '/admin';
+      final destination = _destination(state);
+      if (destination != null &&
+          destination.startsWith('/admin') &&
+          authState.user?.role == 'admin') {
+        return destination;
+      }
+      if (destination != null &&
+          !destination.startsWith('/admin') &&
+          destination.startsWith('/')) {
+        return destination;
       }
       return '/discover';
     }

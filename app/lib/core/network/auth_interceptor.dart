@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:dio/dio.dart';
 
 import 'token_store.dart';
@@ -15,6 +13,17 @@ class AuthInterceptor extends Interceptor {
       path.endsWith('/auth/register') ||
       path.endsWith('/auth/refresh') ||
       path.endsWith('/auth/logout');
+
+  Future<String?> _refreshShared() {
+    final inFlight = _refreshInFlight;
+    if (inFlight != null) return inFlight;
+    final future = _refresh();
+    _refreshInFlight = future;
+    future.whenComplete(() {
+      if (identical(_refreshInFlight, future)) _refreshInFlight = null;
+    });
+    return future;
+  }
 
   @override
   void onRequest(
@@ -44,9 +53,7 @@ class AuthInterceptor extends Interceptor {
           ?.toString()
           .replaceFirst('Bearer ', '');
       if (token == null || token == failedWith) {
-        _refreshInFlight ??= _refresh();
-        token = await _refreshInFlight;
-        _refreshInFlight = null;
+        token = await _refreshShared();
       }
       if (token == null) {
         await _tokens.clear();
@@ -58,7 +65,6 @@ class AuthInterceptor extends Interceptor {
         ..headers['Authorization'] = 'Bearer $token';
       handler.resolve(await _dio.fetch<dynamic>(request));
     } catch (_) {
-      _refreshInFlight = null;
       await _tokens.clear();
       handler.next(err);
     }
@@ -67,11 +73,18 @@ class AuthInterceptor extends Interceptor {
   Future<String?> _refresh() async {
     final refreshToken = await _tokens.refreshToken;
     if (refreshToken == null || refreshToken.isEmpty) return null;
-    final response = await Dio(BaseOptions(baseUrl: _dio.options.baseUrl))
-        .post<Map<String, dynamic>>(
-          '/auth/refresh',
-          data: {'refreshToken': refreshToken},
-        );
+    final refreshDio = Dio(
+      BaseOptions(
+        baseUrl: _dio.options.baseUrl,
+        connectTimeout: _dio.options.connectTimeout,
+        receiveTimeout: _dio.options.receiveTimeout,
+        sendTimeout: _dio.options.sendTimeout,
+      ),
+    );
+    final response = await refreshDio.post<Map<String, dynamic>>(
+      '/auth/refresh',
+      data: {'refreshToken': refreshToken},
+    );
     final data = response.data?['data'] as Map<String, dynamic>?;
     final access = data?['accessToken'] as String?;
     final refresh = data?['refreshToken'] as String?;

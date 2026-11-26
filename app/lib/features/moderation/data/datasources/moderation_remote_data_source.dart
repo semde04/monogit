@@ -20,10 +20,7 @@ class ModerationRemoteDataSource {
   }) async {
     await _dio.patch<void>(
       '/admin/items/$itemId/moderation',
-      data: {
-        'isRemoved': isRemoved,
-        ...?_optionalReason(reason),
-      },
+      data: {'isRemoved': isRemoved, ...?_optionalReason(reason)},
     );
   }
 }

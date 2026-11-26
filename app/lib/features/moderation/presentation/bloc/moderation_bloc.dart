@@ -89,9 +89,7 @@ class ModerationBloc extends Bloc<ModerationEvent, ModerationState> {
     AdminItemModerationChanged event,
     Emitter<ModerationState> emit,
   ) async {
-    emit(
-      state.copyWith(busyItemId: event.itemId, clearFailure: true),
-    );
+    emit(state.copyWith(busyItemId: event.itemId, clearFailure: true));
     final result = await _setItemModeration(
       event.itemId,
       isRemoved: event.isRemoved,
@@ -122,9 +120,7 @@ class ModerationBloc extends Bloc<ModerationEvent, ModerationState> {
           ),
         );
       },
-      (failure) => emit(
-        state.copyWith(clearBusyItem: true, failure: failure),
-      ),
+      (failure) => emit(state.copyWith(clearBusyItem: true, failure: failure)),
     );
   }
 }

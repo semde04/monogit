@@ -32,7 +32,14 @@ class Claim extends Equatable {
   final DateTime? returnedAt;
   final String? finderName, recipientName;
 
-  Claim copyWith({String? status, bool? ownerConfirmedReturn, bool? claimantConfirmedReturn, DateTime? returnedAt, String? finderName, String? recipientName}) => Claim(
+  Claim copyWith({
+    String? status,
+    bool? ownerConfirmedReturn,
+    bool? claimantConfirmedReturn,
+    DateTime? returnedAt,
+    String? finderName,
+    String? recipientName,
+  }) => Claim(
     id: id,
     itemId: itemId,
     itemTitle: itemTitle,
@@ -44,7 +51,8 @@ class Claim extends Equatable {
     proofQuestion: proofQuestion,
     proofAnswer: proofAnswer,
     ownerConfirmedReturn: ownerConfirmedReturn ?? this.ownerConfirmedReturn,
-    claimantConfirmedReturn: claimantConfirmedReturn ?? this.claimantConfirmedReturn,
+    claimantConfirmedReturn:
+        claimantConfirmedReturn ?? this.claimantConfirmedReturn,
     returnedAt: returnedAt ?? this.returnedAt,
     finderName: finderName ?? this.finderName,
     recipientName: recipientName ?? this.recipientName,

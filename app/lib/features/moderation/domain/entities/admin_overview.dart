@@ -54,7 +54,13 @@ class AdminItemSummary extends Equatable {
     this.imageData,
   });
 
-  final String id, title, description, location, type, ownerName, ownerMatricule;
+  final String id,
+      title,
+      description,
+      location,
+      type,
+      ownerName,
+      ownerMatricule;
   final bool isRemoved;
   final String? moderationReason, imageData;
 

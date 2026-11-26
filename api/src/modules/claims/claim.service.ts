@@ -5,6 +5,7 @@ import { ClaimModel } from './claim.model.ts';
 import { UserModel } from '../auth/user.model.ts';
 import { sendPushToUser } from '../../shared/push-notifications.ts';
 import type { CreateClaimInput, UpdateClaimStatusInput } from './claim.schemas.ts';
+import type { PaginationInput } from '../../shared/pagination.ts';
 
 export async function createClaim(claimantId: string, input: CreateClaimInput) {
   const { itemId } = input;
@@ -35,14 +36,25 @@ export async function createClaim(claimantId: string, input: CreateClaimInput) {
     throw new AppError('Une réclamation est déjà en attente.', 409, 'CLAIM_ALREADY_EXISTS');
   }
 
-  const claim = await ClaimModel.create({
-    item: itemId,
-    claimant: claimantId,
-    proofAnswer: input.proofAnswer,
-    itemTitleSnapshot: item.title,
-    itemTypeSnapshot: item.type,
-    itemOwnerSnapshot: item.owner,
-  });
+  let claim;
+  try {
+    claim = await ClaimModel.create({
+      item: itemId,
+      claimant: claimantId,
+      proofAnswer: input.proofAnswer,
+      itemTitleSnapshot: item.title,
+      itemTypeSnapshot: item.type,
+      itemOwnerSnapshot: item.owner,
+    });
+  } catch (error) {
+    if (
+      typeof error === 'object' && error !== null &&
+      'code' in error && error.code === 11000
+    ) {
+      throw new AppError('Une réclamation est déjà en attente.', 409, 'CLAIM_ALREADY_EXISTS');
+    }
+    throw error;
+  }
 
   const claimant = await UserModel.findById(claimantId).select('name').lean();
   if (claimant) {
@@ -58,17 +70,24 @@ export async function createClaim(claimantId: string, input: CreateClaimInput) {
   return claim;
 }
 
-export async function listClaimsForUser(userId: string) {
+export async function listClaimsForUser(userId: string, pagination: PaginationInput) {
   const ownedItems = await ItemModel.find({ owner: userId }).distinct('_id');
-  return ClaimModel.find({
+  const filter = {
     $or: [{ claimant: userId }, { item: { $in: ownedItems } }, { itemOwnerSnapshot: userId }],
-  })
-    .populate('item', 'title type owner proofQuestion')
-    .populate('returnReceipt.finder', 'name')
-    .populate('returnReceipt.recipient', 'name')
-    .populate('claimant', 'name')
-    .sort({ createdAt: -1 })
-    .lean();
+  };
+  const [claims, total] = await Promise.all([
+    ClaimModel.find(filter)
+      .populate('item', 'title type owner proofQuestion')
+      .populate('returnReceipt.finder', 'name')
+      .populate('returnReceipt.recipient', 'name')
+      .populate('claimant', 'name')
+      .sort({ createdAt: -1 })
+      .skip((pagination.page - 1) * pagination.limit)
+      .limit(pagination.limit)
+      .lean(),
+    ClaimModel.countDocuments(filter),
+  ]);
+  return { claims, total };
 }
 
 export async function updateClaimStatus(
@@ -88,20 +107,26 @@ export async function updateClaimStatus(
     throw new AppError('Cette réclamation a déjà été traitée.', 409, 'CLAIM_ALREADY_RESOLVED');
   }
 
-  claim.status = input.status;
-  await claim.save();
+  const updated = await ClaimModel.findOneAndUpdate(
+    { _id: claimId, status: 'pending' },
+    { $set: { status: input.status } },
+    { new: true },
+  );
+  if (!updated) {
+    throw new AppError('Cette réclamation a déjà été traitée.', 409, 'CLAIM_ALREADY_RESOLVED');
+  }
   if (input.status === 'accepted') {
     const item = await ItemModel.findById(claim.item).select('title owner');
     void sendPushToUser(claim.claimant.toString(), {
       title: 'Réclamation acceptée',
       body: `Vous pouvez maintenant contacter le trouveur au sujet de « ${item?.title ?? 'votre objet'} »`,
-    }, { type: 'claim_accepted', claimId: claim.id });
+    }, { type: 'claim_accepted', claimId: updated.id });
     await ClaimModel.updateMany(
       { item: claim.item, _id: { $ne: claim._id }, status: 'pending' },
       { $set: { status: 'rejected' } },
     );
   }
-  return claim;
+  return updated;
 }
 
 export async function confirmClaimReturn(claimId: string, userId: string) {
@@ -110,21 +135,24 @@ export async function confirmClaimReturn(claimId: string, userId: string) {
   }
   const claim = await ClaimModel.findById(claimId);
   if (!claim) throw new AppError('Réclamation introuvable.', 404, 'CLAIM_NOT_FOUND');
+  const item = await ItemModel.findById(claim.item).select('title type owner');
+  if (!item) throw new AppError('Annonce introuvable.', 404, 'ITEM_NOT_FOUND');
+  const ownerId = item.owner.toString();
+  const isOwner = userId === ownerId;
+  const isClaimant = userId === claim.claimant.toString();
+  if (!isOwner && !isClaimant) {
+    throw new AppError('Réclamation introuvable.', 404, 'CLAIM_NOT_FOUND');
+  }
   if (claim.status === 'returned') return claim;
   if (claim.status !== 'accepted') {
     throw new AppError('La réclamation doit être acceptée avant de confirmer la remise.', 409, 'CLAIM_NOT_ACCEPTED');
   }
-  const item = await ItemModel.findById(claim.item).select('title type owner');
-  if (!item) throw new AppError('Annonce introuvable.', 404, 'ITEM_NOT_FOUND');
-  const ownerId = item.owner.toString();
-  if (userId === ownerId) {
+  if (isOwner) {
     if (claim.ownerConfirmedReturnAt) throw new AppError('Votre confirmation est déjà enregistrée.', 409, 'RETURN_ALREADY_CONFIRMED');
     claim.ownerConfirmedReturnAt = new Date();
-  } else if (userId === claim.claimant.toString()) {
+  } else {
     if (claim.claimantConfirmedReturnAt) throw new AppError('Votre confirmation est déjà enregistrée.', 409, 'RETURN_ALREADY_CONFIRMED');
     claim.claimantConfirmedReturnAt = new Date();
-  } else {
-    throw new AppError('Réclamation introuvable.', 404, 'CLAIM_NOT_FOUND');
   }
 
   const otherId = userId === ownerId ? claim.claimant.toString() : ownerId;

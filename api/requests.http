@@ -1,6 +1,9 @@
 @base = http://localhost:5000/api/v1
 
-### 1. Inscription du Trouveur (User 1)
+### Santé
+GET {{base}}/health
+
+### 1. Inscription du trouveur
 # @name registerUser1
 POST {{base}}/auth/register
 Content-Type: application/json
@@ -8,10 +11,11 @@ Content-Type: application/json
 {
   "name": "Jean Dupont",
   "email": "jean.dupont@univ.fr",
+  "matricule": "JEAN001",
   "password": "Password123!"
 }
 
-### 2. Connexion du Trouveur
+### 2. Connexion du trouveur
 # @name loginUser1
 POST {{base}}/auth/login
 Content-Type: application/json
@@ -24,11 +28,20 @@ Content-Type: application/json
 @tokenUser1 = {{loginUser1.response.body.data.accessToken}}
 @refreshTokenUser1 = {{loginUser1.response.body.data.refreshToken}}
 
-### 3. Profil de l'utilisateur connecté
+### 3. Profil courant
 GET {{base}}/auth/me
 Authorization: Bearer {{tokenUser1}}
 
-### 4. Déclarer un objet trouvé (avec Question de preuve)
+### 4. Enregistrer un device pour les notifications
+PUT {{base}}/auth/device-installation
+Authorization: Bearer {{tokenUser1}}
+Content-Type: application/json
+
+{
+  "installationId": "installation-de-test-longueur-suffisante"
+}
+
+### 5. Déclarer un objet trouvé
 # @name createFoundItem
 POST {{base}}/items
 Authorization: Bearer {{tokenUser1}}
@@ -45,23 +58,36 @@ Content-Type: application/json
 
 @itemId = {{createFoundItem.response.body.data._id}}
 
-### 5. Rechercher des objets (Filtrage et Recherche textuelle)
-GET {{base}}/items?search=sac&category=BAGS&type=FOUND
+### 6. Liste paginée et filtrée des objets
+GET {{base}}/items?search=sac&category=BAGS&type=FOUND&page=1&limit=20
 
-### 6. Inscription du Chercheur (User 2)
-# @name loginUser2
+### 7. Détail d’un objet (la question de preuve n’est pas exposée)
+GET {{base}}/items/{{itemId}}
+
+### 8. Inscription du chercheur
+# @name registerUser2
 POST {{base}}/auth/register
 Content-Type: application/json
 
 {
   "name": "Marie Curie",
   "email": "marie.curie@univ.fr",
+  "matricule": "MARIE01",
+  "password": "Password123!"
+}
+
+# @name loginUser2
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "marie.curie@univ.fr",
   "password": "Password123!"
 }
 
 @tokenUser2 = {{loginUser2.response.body.data.accessToken}}
 
-### 7. Soumettre une réclamation (Réponse à la preuve)
+### 9. Réclamer l’objet avec la réponse à la preuve
 # @name createClaim
 POST {{base}}/claims
 Authorization: Bearer {{tokenUser2}}
@@ -74,7 +100,20 @@ Content-Type: application/json
 
 @claimId = {{createClaim.response.body.data._id}}
 
-### 8. Répondre dans le chat privé de la réclamation
+### 10. Réclamations paginées de l’utilisateur
+GET {{base}}/claims?page=1&limit=20
+Authorization: Bearer {{tokenUser2}}
+
+### 11. Accepter la réclamation (côté propriétaire)
+PATCH {{base}}/claims/{{claimId}}/status
+Authorization: Bearer {{tokenUser1}}
+Content-Type: application/json
+
+{
+  "status": "accepted"
+}
+
+### 12. Envoyer un message dans la conversation
 POST {{base}}/messages
 Authorization: Bearer {{tokenUser2}}
 Content-Type: application/json
@@ -84,10 +123,41 @@ Content-Type: application/json
   "text": "Bonjour, je peux passer la récupérer cet après-midi ?"
 }
 
-### 9. Test de la rotation du jeton de rafraîchissement
+### 13. Historique paginé de la conversation
+GET {{base}}/messages/claims/{{claimId}}?page=1&limit=20
+Authorization: Bearer {{tokenUser2}}
+
+### 14. Confirmation de restitution (demandeur puis propriétaire)
+POST {{base}}/claims/{{claimId}}/confirm-return
+Authorization: Bearer {{tokenUser2}}
+
+### 15. Rotation du refresh token
+# @name refreshUser1
 POST {{base}}/auth/refresh
 Content-Type: application/json
 
 {
   "refreshToken": "{{refreshTokenUser1}}"
+}
+
+### 16. Déconnexion (révoque le refresh token courant)
+POST {{base}}/auth/logout
+Content-Type: application/json
+
+{
+  "refreshToken": "{{loginUser1.response.body.data.refreshToken}}"
+}
+
+### 17. Tableau de bord administrateur
+GET {{base}}/admin/overview?page=1&limit=20
+Authorization: Bearer {{adminToken}}
+
+### 18. Modérer une annonce
+PATCH {{base}}/admin/items/{{itemId}}/moderation
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "isRemoved": true,
+  "reason": "Contenu inapproprié"
 }

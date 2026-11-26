@@ -6,5 +6,6 @@ class ConfirmClaimReturn {
   const ConfirmClaimReturn(this.repository);
   final ClaimRepository repository;
 
-  Future<Result<Claim>> call(String claimId) => repository.confirmReturn(claimId);
+  Future<Result<Claim>> call(String claimId) =>
+      repository.confirmReturn(claimId);
 }

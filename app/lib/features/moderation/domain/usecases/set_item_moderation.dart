@@ -8,9 +8,5 @@ class SetItemModeration {
     String itemId, {
     required bool isRemoved,
     String? reason,
-  }) => repository.setItemRemoved(
-    itemId,
-    isRemoved: isRemoved,
-    reason: reason,
-  );
+  }) => repository.setItemRemoved(itemId, isRemoved: isRemoved, reason: reason);
 }

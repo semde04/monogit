@@ -21,12 +21,14 @@ class _AdminView extends StatelessWidget {
   const _AdminView();
 
   @override
-  Widget build(BuildContext context) => BlocListener<ModerationBloc, ModerationState>(
+  Widget build(
+    BuildContext context,
+  ) => BlocListener<ModerationBloc, ModerationState>(
     listenWhen: (previous, current) =>
         previous.failure != current.failure && current.failure != null,
-    listener: (context, state) => ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(state.failure!.message)),
-    ),
+    listener: (context, state) =>
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(state.failure!.message))),
     child: Scaffold(
       appBar: AppBar(
         title: const Text('Supervision'),
@@ -72,66 +74,68 @@ class _AdminView extends StatelessWidget {
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 1280),
                 child: ListView(
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 40),
-              children: [
-                Text(
-                  'Portail web de supervision',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: const Color(0xff087765),
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Vue générale',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 40),
                   children: [
-                    _Metric(label: 'Comptes', value: overview.userCount),
-                    _Metric(label: 'Annonces', value: overview.itemCount),
-                    _Metric(label: 'Réclamations', value: overview.claimCount),
-                    _Metric(
-                      label: 'En attente',
-                      value: overview.pendingClaimCount,
+                    Text(
+                      'Portail web de supervision',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: const Color(0xff087765),
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Vue générale',
+                      style: Theme.of(context).textTheme.titleLarge
+                          ?.copyWith(fontWeight: FontWeight.w800),
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: [
+                        _Metric(label: 'Comptes', value: overview.userCount),
+                        _Metric(label: 'Annonces', value: overview.itemCount),
+                        _Metric(
+                          label: 'Réclamations',
+                          value: overview.claimCount,
+                        ),
+                        _Metric(
+                          label: 'En attente',
+                          value: overview.pendingClaimCount,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      'Annonces récentes',
+                      style: Theme.of(context).textTheme.titleLarge
+                          ?.copyWith(fontWeight: FontWeight.w800),
+                    ),
+                    const SizedBox(height: 10),
+                    if (overview.items.isEmpty)
+                      const _HintCard(
+                        message: 'Aucune annonce publiée pour le moment.',
+                      )
+                    else
+                      ...overview.items.map(
+                        (item) => _ModerationItemCard(
+                          item: item,
+                          busy: state.busyItemId == item.id,
+                        ),
+                      ),
+                    const SizedBox(height: 20),
+                    Text(
+                      'Étudiants et comptes inscrits (${overview.users.length})',
+                      style: Theme.of(context).textTheme.titleLarge
+                          ?.copyWith(fontWeight: FontWeight.w800),
+                    ),
+                    const SizedBox(height: 10),
+                    if (overview.users.isEmpty)
+                      const _HintCard(message: 'Aucun compte inscrit.')
+                    else
+                      ...overview.users.map((user) => _UserCard(user: user)),
                   ],
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  'Annonces récentes',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                if (overview.items.isEmpty)
-                  const _HintCard(message: 'Aucune annonce publiée pour le moment.')
-                else
-                  ...overview.items.map(
-                    (item) => _ModerationItemCard(
-                      item: item,
-                      busy: state.busyItemId == item.id,
-                    ),
-                  ),
-                const SizedBox(height: 20),
-                Text(
-                  'Étudiants et comptes inscrits (${overview.users.length})',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                if (overview.users.isEmpty)
-                  const _HintCard(message: 'Aucun compte inscrit.')
-                else
-                  ...overview.users.map((user) => _UserCard(user: user)),
-              ],
                 ),
               ),
             ),
@@ -202,9 +206,8 @@ class _ModerationItemCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   item.title,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
+                  style: Theme.of(context).textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w800),
                 ),
               ),
               Chip(
@@ -222,17 +225,15 @@ class _ModerationItemCard extends StatelessWidget {
           ),
           Text(
             item.location,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Colors.black54,
-            ),
+            style: Theme.of(context).textTheme.bodySmall
+                ?.copyWith(color: Colors.black54),
           ),
           if (item.moderationReason != null) ...[
             const SizedBox(height: 6),
             Text(
               'Motif : ${item.moderationReason}',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: const Color(0xff9b3838),
-              ),
+              style: Theme.of(context).textTheme.bodySmall
+                  ?.copyWith(color: const Color(0xff9b3838)),
             ),
           ],
           const SizedBox(height: 8),
@@ -242,21 +243,19 @@ class _ModerationItemCard extends StatelessWidget {
               onPressed: busy
                   ? null
                   : () => item.isRemoved
-                  ? context.read<ModerationBloc>().add(
-                      AdminItemModerationChanged(
-                        itemId: item.id,
-                        isRemoved: false,
-                      ),
-                    )
-                  : _requestRemoval(context, item),
+                        ? context.read<ModerationBloc>().add(
+                            AdminItemModerationChanged(
+                              itemId: item.id,
+                              isRemoved: false,
+                            ),
+                          )
+                        : _requestRemoval(context, item),
               icon: busy
                   ? const SizedBox.square(
                       dimension: 16,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : Icon(
-                      item.isRemoved ? Icons.restore : Icons.visibility_off,
-                    ),
+                  : Icon(item.isRemoved ? Icons.restore : Icons.visibility_off),
               label: Text(item.isRemoved ? 'Rétablir' : 'Masquer l’annonce'),
             ),
           ),
@@ -265,7 +264,10 @@ class _ModerationItemCard extends StatelessWidget {
     ),
   );
 
-  Future<void> _requestRemoval(BuildContext context, AdminItemSummary item) async {
+  Future<void> _requestRemoval(
+    BuildContext context,
+    AdminItemSummary item,
+  ) async {
     final reasonController = TextEditingController();
     final reason = await showDialog<String>(
       context: context,
@@ -287,10 +289,8 @@ class _ModerationItemCard extends StatelessWidget {
             child: const Text('Annuler'),
           ),
           FilledButton(
-            onPressed: () => Navigator.pop(
-              dialogContext,
-              reasonController.text.trim(),
-            ),
+            onPressed: () =>
+                Navigator.pop(dialogContext, reasonController.text.trim()),
             child: const Text('Masquer'),
           ),
         ],

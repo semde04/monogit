@@ -1,13 +1,21 @@
-import { isValidObjectId } from 'mongoose';
+import { isValidObjectId, type Types } from 'mongoose';
 import { AppError } from '../../shared/errors.ts';
-import { ItemModel } from './item.model.ts';
+import { ItemModel, type Item } from './item.model.ts';
 import { ClaimModel } from '../claims/claim.model.ts';
 import { sendPushToUser } from '../../shared/push-notifications.ts';
 import type { CreateItemInput, UpdateItemInput } from './item.schemas.ts';
 
-type ItemFilters = { search?: string; category?: string; type?: 'FOUND' | 'LOST' };
+type ItemFilters = {
+  search?: string;
+  category?: string;
+  type?: 'FOUND' | 'LOST';
+  page: number;
+  limit: number;
+};
+type ItemForMatching = Item & { _id: Types.ObjectId };
+const publicFields = '-proofQuestion -moderationReason -moderatedBy -moderatedAt';
 
-export function listItems(filters: ItemFilters = {}) {
+export async function listItems(filters: ItemFilters) {
   const query: Record<string, unknown> = {};
   if (filters.category) query.category = filters.category;
   if (filters.type) query.type = filters.type;
@@ -23,14 +31,23 @@ export function listItems(filters: ItemFilters = {}) {
   }
   query.isClosed = { $ne: true };
   query.isRemoved = { $ne: true };
-  return ItemModel.find(query).sort({ createdAt: -1 }).lean();
+  const [items, total] = await Promise.all([
+    ItemModel.find(query)
+      .select(publicFields)
+      .sort({ createdAt: -1 })
+      .skip((filters.page - 1) * filters.limit)
+      .limit(filters.limit)
+      .lean(),
+    ItemModel.countDocuments(query),
+  ]);
+  return { items, total };
 }
 
 export async function getItem(itemId: string) {
   if (!isValidObjectId(itemId)) {
     throw new AppError('Objet introuvable.', 404, 'ITEM_NOT_FOUND');
   }
-  const item = await ItemModel.findById(itemId).lean();
+  const item = await ItemModel.findById(itemId).select(publicFields).lean();
   if (!item || item.isRemoved) {
     throw new AppError('Objet introuvable.', 404, 'ITEM_NOT_FOUND');
   }
@@ -51,7 +68,7 @@ function searchTerms(value: string): Set<string> {
   );
 }
 
-async function notifyPossibleMatches(found: Awaited<ReturnType<typeof ItemModel.create>>) {
+async function notifyPossibleMatches(found: ItemForMatching) {
   const foundTerms = searchTerms(`${found.title} ${found.description}`);
   if (foundTerms.size === 0) return;
   const lostItems = await ItemModel.find({
@@ -70,7 +87,7 @@ async function notifyPossibleMatches(found: Awaited<ReturnType<typeof ItemModel.
     const required = Math.min(2, Math.ceil(Math.min(terms.size, foundTerms.size) / 2));
     if (common < required) continue;
     const ownerId = lost.owner.toString();
-    const match = { itemId: found.id, title: lost.title, score: common / terms.size };
+    const match = { itemId: found._id.toString(), title: lost.title, score: common / terms.size };
     if (!bestMatches.has(ownerId) || bestMatches.get(ownerId)!.score < match.score) {
       bestMatches.set(ownerId, match);
     }

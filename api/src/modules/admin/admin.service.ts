@@ -4,8 +4,10 @@ import { ClaimModel } from '../claims/claim.model.ts';
 import { ItemModel } from '../items/item.model.ts';
 import { AppError } from '../../shared/errors.ts';
 import type { ModerateItemInput } from './admin.schemas.ts';
+import type { PaginationInput } from '../../shared/pagination.ts';
 
-export async function getAdminOverview() {
+export async function getAdminOverview(pagination: PaginationInput) {
+  const skip = (pagination.page - 1) * pagination.limit;
   const [users, items, claims, pendingClaims, recentUsers, recentItems] =
     await Promise.all([
       UserModel.countDocuments(),
@@ -15,12 +17,15 @@ export async function getAdminOverview() {
       UserModel.find()
         .select('_id name email matricule role createdAt')
         .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(pagination.limit)
         .lean(),
       ItemModel.find()
         .select('title description category location type imageData isClosed isRemoved moderationReason moderatedAt owner createdAt')
         .populate('owner', 'name matricule')
         .sort({ createdAt: -1 })
-        .limit(12)
+        .skip(skip)
+        .limit(pagination.limit)
         .lean(),
     ]);
 
@@ -28,6 +33,7 @@ export async function getAdminOverview() {
     stats: { users, items, claims, pendingClaims },
     recentUsers,
     recentItems,
+    totals: { users, items },
   };
 }
 

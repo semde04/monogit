@@ -4,6 +4,7 @@ import { SignJWT } from 'jose';
 import { env } from '../../config/env.ts';
 import { AppError } from '../../shared/errors.ts';
 import { RefreshTokenModel } from './refresh-token.model.ts';
+import { ConsumedRefreshTokenModel } from './consumed-refresh-token.model.ts';
 
 function hashToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
@@ -13,6 +14,8 @@ export async function issueTokenPair(userId: string) {
   const accessToken = await new SignJWT({})
     .setProtectedHeader({ alg: 'HS256' })
     .setSubject(userId)
+    .setIssuer(env.JWT_ISSUER)
+    .setAudience(env.JWT_AUDIENCE)
     .setIssuedAt()
     .setExpirationTime(env.ACCESS_TOKEN_TTL)
     .sign(new TextEncoder().encode(env.JWT_ACCESS_SECRET));
@@ -32,14 +35,37 @@ export async function issueTokenPair(userId: string) {
 }
 
 export async function rotateRefreshToken(refreshToken: string) {
+  const tokenHash = hashToken(refreshToken);
+
+  if (await ConsumedRefreshTokenModel.exists({ tokenHash })) {
+    const consumed = await ConsumedRefreshTokenModel.findOne({ tokenHash }).lean();
+    if (consumed) {
+      await Promise.all([
+        RefreshTokenModel.deleteMany({ userId: consumed.userId }),
+        ConsumedRefreshTokenModel.deleteMany({ userId: consumed.userId }),
+      ]);
+    }
+    throw new AppError(
+      'Jeton de rafraîchissement réutilisé : toutes les sessions ont été révoquées.',
+      401,
+      'REFRESH_TOKEN_REUSED',
+    );
+  }
+
   const storedToken = await RefreshTokenModel.findOneAndDelete({
-    tokenHash: hashToken(refreshToken),
+    tokenHash,
     expiresAt: { $gt: new Date() },
   });
 
   if (!storedToken) {
     throw new AppError('Jeton de rafraîchissement invalide ou expiré.', 401, 'INVALID_REFRESH_TOKEN');
   }
+
+  await ConsumedRefreshTokenModel.create({
+    userId: storedToken.userId,
+    tokenHash,
+    expiresAt: storedToken.expiresAt,
+  });
 
   return issueTokenPair(storedToken.userId.toString());
 }

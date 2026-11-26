@@ -49,7 +49,8 @@ class _LostFoundAppState extends State<LostFoundApp> {
   }
 
   Future<void> _handleInitialNotification() async {
-    final data = await getIt<PushNotificationService>().initialNotificationData();
+    final data = await getIt<PushNotificationService>()
+        .initialNotificationData();
     if (data == null || !mounted) return;
     final path = _notificationPath(data);
     if (_auth.state.status == AuthStatus.authenticated) {
@@ -61,7 +62,9 @@ class _LostFoundAppState extends State<LostFoundApp> {
 
   String _notificationPath(Map<String, dynamic> data) {
     final itemId = data['itemId']?.toString();
-    if (data['type'] == 'possible_match' && itemId != null && itemId.isNotEmpty) {
+    if (data['type'] == 'possible_match' &&
+        itemId != null &&
+        itemId.isNotEmpty) {
       return '/items/$itemId';
     }
     return '/claims';

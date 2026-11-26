@@ -1,5 +1,6 @@
 import argon2 from 'argon2';
 import { AppError } from '../../shared/errors.ts';
+import { hashPassword } from '../../shared/password.ts';
 import { UserModel } from './user.model.ts';
 import { issueTokenPair } from './token.service.ts';
 import type { LoginInput, RegisterInput } from './auth.schemas.ts';
@@ -13,7 +14,7 @@ export async function registerUser(input: RegisterInput) {
     throw new AppError('Ce matricule est déjà associé à un compte.', 409, 'MATRICULE_TAKEN');
   }
 
-  const passwordHash = await argon2.hash(input.password);
+  const passwordHash = await hashPassword(input.password);
   let user;
   try {
     user = await UserModel.create({
@@ -70,7 +71,24 @@ export async function getCurrentUser(userId: string) {
 export async function addDeviceInstallation(userId: string, installationId: string) {
   await UserModel.updateOne(
     { _id: userId },
-    { $addToSet: { firebaseInstallationIds: installationId } },
+    [
+      {
+        $set: {
+          firebaseInstallationIds: {
+            $slice: [
+              {
+                $cond: [
+                  { $in: [installationId, '$firebaseInstallationIds'] },
+                  '$firebaseInstallationIds',
+                  { $concatArrays: ['$firebaseInstallationIds', [installationId]] },
+                ],
+              },
+              -10,
+            ],
+          },
+        },
+      },
+    ],
   );
 }
 

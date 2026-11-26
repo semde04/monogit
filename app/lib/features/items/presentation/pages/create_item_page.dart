@@ -207,9 +207,8 @@ class _CreateItemViewState extends State<_CreateItemView> {
     children: [
       Text(
         'Photo de l’objet',
-        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-          fontWeight: FontWeight.w700,
-        ),
+        style: Theme.of(context).textTheme.titleSmall
+            ?.copyWith(fontWeight: FontWeight.w700),
       ),
       const SizedBox(height: 8),
       if (_photoBytes case final bytes?)
@@ -310,7 +309,9 @@ class _CreateItemViewState extends State<_CreateItemView> {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Photo trop volumineuse. Choisissez une image plus légère.'),
+            content: Text(
+              'Photo trop volumineuse. Choisissez une image plus légère.',
+            ),
           ),
         );
         return;

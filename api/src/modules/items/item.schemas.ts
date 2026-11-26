@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { paginationSchema } from '../../shared/pagination.ts';
 
 export const createItemSchema = z.object({
   title: z.string().trim().min(1).max(160),
@@ -20,10 +21,10 @@ export const updateItemSchema = createItemSchema.partial().refine(
 );
 
 export const itemQuerySchema = z.object({
-  search: z.string().trim().optional(),
+  search: z.string().trim().max(100).optional(),
   category: z.string().trim().optional(),
   type: z.enum(['FOUND', 'LOST']).optional(),
-});
+}).extend(paginationSchema.shape);
 
 export type CreateItemInput = z.infer<typeof createItemSchema>;
 export type UpdateItemInput = z.infer<typeof updateItemSchema>;

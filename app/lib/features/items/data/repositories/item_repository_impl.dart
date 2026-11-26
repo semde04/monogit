@@ -42,10 +42,10 @@ class ItemRepositoryImpl implements ItemRepository {
       category: category,
       type: type,
     );
-    await _storage.write(
-      key: _cacheKey,
-      value: jsonEncode(items.map((e) => e.toJson()).toList()),
-    );
+    final cacheable = items
+        .map((item) => {...item.toJson()}..remove('imageData'))
+        .toList();
+    await _storage.write(key: _cacheKey, value: jsonEncode(cacheable));
     return items.map((e) => e.entity).toList();
   });
 

@@ -19,5 +19,8 @@ const itemSchema = new Schema(
   { timestamps: true },
 );
 
+itemSchema.index({ isRemoved: 1, isClosed: 1, createdAt: -1 });
+itemSchema.index({ category: 1, type: 1, createdAt: -1 });
+
 export type Item = InferSchemaType<typeof itemSchema>;
 export const ItemModel = model('Item', itemSchema);

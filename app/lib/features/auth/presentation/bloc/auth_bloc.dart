@@ -28,7 +28,12 @@ final class AuthLoginRequested extends AuthEvent {
 }
 
 final class AuthRegisterRequested extends AuthEvent {
-  const AuthRegisterRequested(this.name, this.email, this.matricule, this.password);
+  const AuthRegisterRequested(
+    this.name,
+    this.email,
+    this.matricule,
+    this.password,
+  );
   final String name, email, matricule, password;
   @override
   List<Object?> get props => [name, email, matricule, password];
@@ -89,9 +94,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
   Future<void> _onStarted(AuthStarted event, Emitter<AuthState> emit) async {
     try {
-      final result = await _repository
-          .currentUser()
-          .timeout(const Duration(seconds: 15));
+      final result = await _repository.currentUser().timeout(
+        const Duration(seconds: 15),
+      );
       result.fold(
         (user) => emit(AuthState(status: AuthStatus.authenticated, user: user)),
         (failure) => emit(
@@ -127,9 +132,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     await result.fold<Future<void>>(
       (session) async {
         final user = await _resolveUserOrSession(session.user);
-        emit(
-          AuthState(status: AuthStatus.authenticated, user: user),
-        );
+        emit(AuthState(status: AuthStatus.authenticated, user: user));
       },
       (failure) async => emit(state.copyWith(loading: false, failure: failure)),
     );
@@ -149,9 +152,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     await result.fold<Future<void>>(
       (session) async {
         final user = await _resolveUserOrSession(session.user);
-        emit(
-          AuthState(status: AuthStatus.authenticated, user: user),
-        );
+        emit(AuthState(status: AuthStatus.authenticated, user: user));
       },
       (failure) async => emit(state.copyWith(loading: false, failure: failure)),
     );
@@ -169,9 +170,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
   Future<AppUser> _resolveUserOrSession(AppUser sessionUser) async {
     try {
-      final current = await _repository
-          .currentUser()
-          .timeout(const Duration(seconds: 15));
+      final current = await _repository.currentUser().timeout(
+        const Duration(seconds: 15),
+      );
       final user = current.fold((user) => user, (_) => sessionUser);
       return user;
     } catch (_) {

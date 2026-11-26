@@ -1,0 +1,89 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  api:
+    name: API — typecheck et tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api
+    services:
+      mongo:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.adminCommand({ping: 1})'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: api/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+
+  flutter:
+    name: Flutter — format, analyse et tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: dart format --output=none --set-exit-if-changed lib test
+      - run: flutter analyze
+      - run: flutter test
+
+  web:
+    name: Portail admin — build et déploiement
+    needs: [api, flutter]
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Vérifier l’URL API HTTPS
+        env:
+          API_BASE_URL: ${{ secrets.API_BASE_URL }}
+        run: |
+          test -n "$API_BASE_URL"
+          case "$API_BASE_URL" in https://*) ;; *) echo "API_BASE_URL doit être en HTTPS" >&2; exit 1 ;; esac
+      - name: Build web
+        env:
+          API_BASE_URL: ${{ secrets.API_BASE_URL }}
+        run: flutter build web --release --dart-define=API_BASE_URL="$API_BASE_URL"
+      - name: Déploiement Firebase Hosting
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: w9jds/firebase-action@master
+        with:
+          args: deploy --only hosting --project lost-found-74fa4
+        env:
+          GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          PROJECT_PATH: app

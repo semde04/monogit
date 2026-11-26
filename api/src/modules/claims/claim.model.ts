@@ -25,5 +25,12 @@ const claimSchema = new Schema(
   { timestamps: true },
 );
 
+claimSchema.index({ status: 1, createdAt: -1 });
+claimSchema.index({ item: 1, status: 1 });
+claimSchema.index(
+  { item: 1, claimant: 1 },
+  { unique: true, partialFilterExpression: { status: 'pending' } },
+);
+
 export type Claim = InferSchemaType<typeof claimSchema>;
 export const ClaimModel = model('Claim', claimSchema);

@@ -10,7 +10,7 @@
     "start": "node src/server.ts",
     "create-admin": "node --env-file=.env src/scripts/create-admin.ts",
     "typecheck": "tsc --noEmit",
-    "test": "node --env-file=.env.test --test --test-concurrency=1 \"test/**/*.test.ts\""
+    "test": "node --env-file=.env.test.example --test --test-concurrency=1 \"test/**/*.test.ts\""
   },
   "dependencies": {
     "argon2": "^0.41.0",

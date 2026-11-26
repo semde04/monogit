@@ -18,10 +18,6 @@ class ModerationRepositoryImpl implements ModerationRepository {
     required bool isRemoved,
     String? reason,
   }) => captureApi(
-    () => _remote.setItemRemoved(
-      itemId,
-      isRemoved: isRemoved,
-      reason: reason,
-    ),
+    () => _remote.setItemRemoved(itemId, isRemoved: isRemoved, reason: reason),
   );
 }

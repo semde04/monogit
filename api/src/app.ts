@@ -15,6 +15,7 @@ import { errorHandler } from './shared/error-handler.ts';
 
 export function createApp() {
   const app = express();
+  app.set('trust proxy', 1);
 
   app.use(helmet());
   app.use(
@@ -26,12 +27,24 @@ export function createApp() {
     }),
   );
   app.use(pinoHttp({ logger, autoLogging: env.NODE_ENV !== 'test' }));
+  const skipInTests = () => env.NODE_ENV === 'test';
   app.use(
     rateLimit({
       windowMs: 15 * 60 * 1000,
       max: 100,
       standardHeaders: true,
       legacyHeaders: false,
+      skip: skipInTests,
+    }),
+  );
+  app.use(
+    '/api/v1/auth',
+    rateLimit({
+      windowMs: 15 * 60 * 1000,
+      max: 30,
+      standardHeaders: true,
+      legacyHeaders: false,
+      skip: skipInTests,
     }),
   );
   app.use(express.json({ limit: '1.2mb' }));

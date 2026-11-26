@@ -4,6 +4,7 @@ import { ItemModel } from '../items/item.model.ts';
 import { ClaimModel } from '../claims/claim.model.ts';
 import { MessageModel } from './message.model.ts';
 import type { CreateMessageInput } from './message.schemas.ts';
+import type { PaginationInput } from '../../shared/pagination.ts';
 
 async function assertClaimParticipant(claimId: string, userId: string): Promise<void> {
   if (!isValidObjectId(claimId)) {
@@ -22,12 +23,19 @@ async function assertClaimParticipant(claimId: string, userId: string): Promise<
   }
 }
 
-export async function listMessages(claimId: string, userId: string) {
+export async function listMessages(claimId: string, userId: string, pagination: PaginationInput) {
   await assertClaimParticipant(claimId, userId);
-  return MessageModel.find({ claim: claimId })
-    .populate('sender', 'name')
-    .sort({ createdAt: 1 })
-    .lean();
+  const filter = { claim: claimId };
+  const [messages, total] = await Promise.all([
+    MessageModel.find(filter)
+      .populate('sender', 'name')
+      .sort({ createdAt: 1 })
+      .skip((pagination.page - 1) * pagination.limit)
+      .limit(pagination.limit)
+      .lean(),
+    MessageModel.countDocuments(filter),
+  ]);
+  return { messages, total };
 }
 
 export async function createMessage(

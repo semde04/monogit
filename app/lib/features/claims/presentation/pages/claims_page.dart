@@ -177,16 +177,24 @@ class _ClaimCard extends StatelessWidget {
                       : 'Après vous être mis d’accord par message et avoir remis l’objet, confirmez la remise ici.',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
-                if (!claim.ownerConfirmedReturn || !claim.claimantConfirmedReturn) ...[
+                if (!claim.ownerConfirmedReturn ||
+                    !claim.claimantConfirmedReturn) ...[
                   const SizedBox(height: 10),
                   Align(
                     alignment: Alignment.centerLeft,
                     child: FilledButton.tonalIcon(
                       onPressed: busy
                           ? null
-                          : () => context.read<ClaimsBloc>().add(ClaimReturnConfirmed(claim.id)),
+                          : () => context.read<ClaimsBloc>().add(
+                              ClaimReturnConfirmed(claim.id),
+                            ),
                       icon: const Icon(Icons.handshake_outlined),
-                      label: Text(_returnAction(incoming: incoming, itemType: claim.itemType)),
+                      label: Text(
+                        _returnAction(
+                          incoming: incoming,
+                          itemType: claim.itemType,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -252,7 +260,9 @@ class _ClaimCard extends StatelessWidget {
 String _returnAction({required bool incoming, required String itemType}) {
   final isFound = itemType == 'FOUND';
   final isFinder = incoming == isFound;
-  return isFinder ? 'Confirmer que j’ai remis l’objet' : 'Confirmer que j’ai récupéré l’objet';
+  return isFinder
+      ? 'Confirmer que j’ai remis l’objet'
+      : 'Confirmer que j’ai récupéré l’objet';
 }
 
 class _ReturnReceipt extends StatelessWidget {
@@ -275,11 +285,25 @@ class _ReturnReceipt extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('RESTITUTION CONFIRMÉE', style: TextStyle(color: Color(0xff236b5d), fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: .4)),
+          const Text(
+            'RESTITUTION CONFIRMÉE',
+            style: TextStyle(
+              color: Color(0xff236b5d),
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              letterSpacing: .4,
+            ),
+          ),
           const SizedBox(height: 5),
-          Text('L’objet « ${claim.itemTitle} » a été remis à ${claim.recipientName ?? (claim.itemType == 'FOUND' ? claim.claimantName : 'la personne propriétaire')}.', style: const TextStyle(fontWeight: FontWeight.w600)),
+          Text(
+            'L’objet « ${claim.itemTitle} » a été remis à ${claim.recipientName ?? (claim.itemType == 'FOUND' ? claim.claimantName : 'la personne propriétaire')}.',
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
           const SizedBox(height: 3),
-          Text('Confirmée le $date', style: const TextStyle(fontSize: 12, color: Colors.black54)),
+          Text(
+            'Confirmée le $date',
+            style: const TextStyle(fontSize: 12, color: Colors.black54),
+          ),
         ],
       ),
     );

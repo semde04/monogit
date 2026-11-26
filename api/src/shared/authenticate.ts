@@ -15,6 +15,11 @@ export const authenticate: RequestHandler = async (req, _res, next) => {
     const { payload } = await jwtVerify(
       token,
       new TextEncoder().encode(env.JWT_ACCESS_SECRET),
+      {
+        algorithms: ['HS256'],
+        issuer: env.JWT_ISSUER,
+        audience: env.JWT_AUDIENCE,
+      },
     );
     if (typeof payload.sub !== 'string') {
       throw new Error('Invalid token subject');

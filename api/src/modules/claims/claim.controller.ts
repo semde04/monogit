@@ -1,6 +1,8 @@
 import type { RequestHandler } from 'express';
 import { AppError } from '../../shared/errors.ts';
+import { paginationMeta } from '../../shared/pagination.ts';
 import { routeParam } from '../../shared/route-param.ts';
+import { claimQuerySchema } from './claim.schemas.ts';
 import { confirmClaimReturn, createClaim, listClaimsForUser, updateClaimStatus } from './claim.service.ts';
 
 function currentUserId(req: Parameters<RequestHandler>[0]): string {
@@ -9,7 +11,12 @@ function currentUserId(req: Parameters<RequestHandler>[0]): string {
 }
 
 export const getClaims: RequestHandler = async (req, res) => {
-  res.json({ data: { claims: await listClaimsForUser(currentUserId(req)) } });
+  const query = claimQuerySchema.safeParse(req.query);
+  if (!query.success) {
+    throw new AppError('Paramètres de pagination invalides.', 422, 'VALIDATION_ERROR', query.error.flatten());
+  }
+  const { claims, total } = await listClaimsForUser(currentUserId(req), query.data);
+  res.json({ data: { claims }, meta: paginationMeta(total, query.data) });
 };
 
 export const postClaim: RequestHandler = async (req, res) => {

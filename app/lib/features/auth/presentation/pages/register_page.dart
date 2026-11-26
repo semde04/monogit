@@ -91,7 +91,8 @@ class _RegisterPageState extends State<RegisterPage> {
                           prefixIcon: const Icon(Icons.badge_outlined),
                           errorText: _validationError(context, 'matricule'),
                         ),
-                        validator: (value) => value == null || value.trim().length < 3
+                        validator: (value) =>
+                            value == null || value.trim().length < 3
                             ? 'Entrez votre matricule étudiant.'
                             : null,
                       ),

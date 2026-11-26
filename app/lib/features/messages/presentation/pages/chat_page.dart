@@ -28,10 +28,11 @@ class _ChatViewState extends State<_ChatView> {
   final _text = TextEditingController();
   final _scroll = ScrollController();
   Timer? _poll;
+  String? _lastError;
   @override
   void initState() {
     super.initState();
-    _poll = Timer.periodic(const Duration(seconds: 12), (_) {
+    _poll = Timer.periodic(const Duration(seconds: 30), (_) {
       if (mounted) {
         context.read<MessagesBloc>().add(MessagesRequested(widget.claimId));
       }
@@ -68,14 +69,20 @@ class _ChatViewState extends State<_ChatView> {
                 a.failure != b.failure && b.failure != null ||
                 a.messages.length != b.messages.length,
             listener: (context, state) {
-              if (state.failure != null) {
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(SnackBar(content: Text(state.failure!.message)));
+              final message = state.failure?.message;
+              if (message != null && message != _lastError) {
+                _lastError = message;
+                ScaffoldMessenger.of(context)
+                    .showSnackBar(SnackBar(content: Text(message)));
               }
+              if (message == null) _lastError = null;
               if (state.messages.isNotEmpty) {
                 WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (_scroll.hasClients) {
+                  final nearBottom =
+                      !_scroll.hasClients ||
+                      _scroll.position.pixels >=
+                          _scroll.position.maxScrollExtent - 120;
+                  if (nearBottom && _scroll.hasClients) {
                     _scroll.animateTo(
                       _scroll.position.maxScrollExtent,
                       duration: const Duration(milliseconds: 220),

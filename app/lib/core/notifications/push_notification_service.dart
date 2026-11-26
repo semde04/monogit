@@ -21,6 +21,11 @@ class PushNotificationService {
 
   void initialize({void Function(RemoteMessage message)? onNotificationTap}) {
     if (!_supported) return;
+    _installationSubscription ??= FirebaseMessaging.instance.onRegistered
+        .listen((fid) {
+          _installationId = fid;
+          unawaited(_saveInstallationId(fid));
+        });
     _messageSubscription ??= FirebaseMessaging.onMessage.listen((message) {
       final title = message.notification?.title ?? 'LostFound';
       final body =
@@ -69,6 +74,8 @@ class PushNotificationService {
         unawaited(_saveInstallationId(fid));
       });
       await messaging.register();
+      final fid = _installationId;
+      if (fid != null) await _saveInstallationId(fid);
     } catch (_) {
       // Push notifications are optional and must not block sign-in.
     } finally {
