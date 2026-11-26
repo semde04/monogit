@@ -19,4 +19,7 @@ class ClaimRepositoryImpl implements ClaimRepository {
   @override
   Future<Result<Claim>> updateStatus(String claimId, String status) =>
       captureApi(() async => (await _remote.update(claimId, status)).entity);
+  @override
+  Future<Result<Claim>> confirmReturn(String claimId) =>
+      captureApi(() async => (await _remote.confirmReturn(claimId)).entity);
 }

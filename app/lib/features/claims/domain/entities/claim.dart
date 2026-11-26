@@ -12,6 +12,11 @@ class Claim extends Equatable {
     this.itemType = 'FOUND',
     this.proofQuestion,
     this.proofAnswer = '',
+    this.ownerConfirmedReturn = false,
+    this.claimantConfirmedReturn = false,
+    this.returnedAt,
+    this.finderName,
+    this.recipientName,
   });
   final String id,
       itemId,
@@ -23,8 +28,11 @@ class Claim extends Equatable {
   final String? proofQuestion;
   final String proofAnswer;
   final DateTime createdAt;
+  final bool ownerConfirmedReturn, claimantConfirmedReturn;
+  final DateTime? returnedAt;
+  final String? finderName, recipientName;
 
-  Claim copyWith({String? status}) => Claim(
+  Claim copyWith({String? status, bool? ownerConfirmedReturn, bool? claimantConfirmedReturn, DateTime? returnedAt, String? finderName, String? recipientName}) => Claim(
     id: id,
     itemId: itemId,
     itemTitle: itemTitle,
@@ -35,6 +43,11 @@ class Claim extends Equatable {
     itemType: itemType,
     proofQuestion: proofQuestion,
     proofAnswer: proofAnswer,
+    ownerConfirmedReturn: ownerConfirmedReturn ?? this.ownerConfirmedReturn,
+    claimantConfirmedReturn: claimantConfirmedReturn ?? this.claimantConfirmedReturn,
+    returnedAt: returnedAt ?? this.returnedAt,
+    finderName: finderName ?? this.finderName,
+    recipientName: recipientName ?? this.recipientName,
   );
 
   @override
@@ -49,5 +62,10 @@ class Claim extends Equatable {
     itemType,
     proofQuestion,
     proofAnswer,
+    ownerConfirmedReturn,
+    claimantConfirmedReturn,
+    returnedAt,
+    finderName,
+    recipientName,
   ];
 }

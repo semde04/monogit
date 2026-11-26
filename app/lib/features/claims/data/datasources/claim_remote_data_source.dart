@@ -35,4 +35,9 @@ class ClaimRemoteDataSource {
             as Map<String, dynamic>;
     return ClaimModel.fromJson(data);
   }
+
+  Future<ClaimModel> confirmReturn(String id) async {
+    final data = (await _dio.post<Map<String, dynamic>>('/claims/$id/confirm-return')).data!['data'] as Map<String, dynamic>;
+    return ClaimModel.fromJson(data);
+  }
 }

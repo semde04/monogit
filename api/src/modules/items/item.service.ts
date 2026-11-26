@@ -1,6 +1,7 @@
 import { isValidObjectId } from 'mongoose';
 import { AppError } from '../../shared/errors.ts';
 import { ItemModel } from './item.model.ts';
+import { ClaimModel } from '../claims/claim.model.ts';
 import type { CreateItemInput, UpdateItemInput } from './item.schemas.ts';
 
 type ItemFilters = { search?: string; category?: string; type?: 'FOUND' | 'LOST' };
@@ -59,6 +60,9 @@ export async function updateItem(
 export async function deleteItem(itemId: string, ownerId: string): Promise<void> {
   if (!isValidObjectId(itemId)) {
     throw new AppError('Objet introuvable.', 404, 'ITEM_NOT_FOUND');
+  }
+  if (await ClaimModel.exists({ item: itemId, status: 'accepted' })) {
+    throw new AppError('Terminez la réclamation et confirmez la restitution avant de supprimer cette annonce.', 409, 'CLAIM_IN_PROGRESS');
   }
   const result = await ItemModel.deleteOne({ _id: itemId, owner: ownerId });
   if (result.deletedCount === 0) {

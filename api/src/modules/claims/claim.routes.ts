@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { authenticate } from '../../shared/authenticate.ts';
 import { validateBody } from '../../shared/validate.ts';
-import { postClaim, getClaims, patchClaimStatus } from './claim.controller.ts';
+import { postClaim, getClaims, patchClaimStatus, postConfirmClaimReturn } from './claim.controller.ts';
 import { createClaimSchema, updateClaimStatusSchema } from './claim.schemas.ts';
 
 const router = Router();
@@ -10,5 +10,6 @@ router.use(authenticate);
 router.get('/', getClaims);
 router.post('/', validateBody(createClaimSchema), postClaim);
 router.patch('/:claimId/status', validateBody(updateClaimStatusSchema), patchClaimStatus);
+router.post('/:claimId/confirm-return', postConfirmClaimReturn);
 
 export default router;

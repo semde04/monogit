@@ -7,6 +7,7 @@ import '../../domain/repositories/claim_repository.dart';
 import '../../domain/usecases/create_claim.dart';
 import '../../domain/usecases/get_claims.dart';
 import '../../domain/usecases/update_claim_status.dart';
+import '../../domain/usecases/confirm_claim_return.dart';
 
 sealed class ClaimsEvent extends Equatable {
   const ClaimsEvent();
@@ -30,6 +31,13 @@ final class ClaimStatusChanged extends ClaimsEvent {
   final String id, status;
   @override
   List<Object?> get props => [id, status];
+}
+
+final class ClaimReturnConfirmed extends ClaimsEvent {
+  const ClaimReturnConfirmed(this.id);
+  final String id;
+  @override
+  List<Object?> get props => [id];
 }
 
 class ClaimsState extends Equatable {
@@ -80,14 +88,17 @@ class ClaimsBloc extends Bloc<ClaimsEvent, ClaimsState> {
     : _getClaims = GetClaims(repository),
       _createClaim = CreateClaim(repository),
       _updateStatus = UpdateClaimStatus(repository),
+      _confirmReturn = ConfirmClaimReturn(repository),
       super(const ClaimsState()) {
     on<ClaimsRequested>(_load);
     on<ClaimCreated>(_create);
     on<ClaimStatusChanged>(_changeStatus);
+    on<ClaimReturnConfirmed>(_confirmReturnEvent);
   }
   final GetClaims _getClaims;
   final CreateClaim _createClaim;
   final UpdateClaimStatus _updateStatus;
+  final ConfirmClaimReturn _confirmReturn;
   Future<void> _load(ClaimsRequested event, Emitter<ClaimsState> emit) async {
     emit(state.copyWith(loading: true, clearFailure: true));
     final result = await _getClaims();
@@ -119,12 +130,27 @@ class ClaimsBloc extends Bloc<ClaimsEvent, ClaimsState> {
           claims: state.claims
               .map(
                 (item) => item.id == claim.id
-                    ? item.copyWith(status: claim.status)
+                    ? claim
                     : item,
               )
               .toList(),
         ),
       ),
+      (failure) => emit(state.copyWith(clearBusy: true, failure: failure)),
+    );
+    emit(state.copyWith(clearBusy: true));
+  }
+
+  Future<void> _confirmReturnEvent(
+    ClaimReturnConfirmed event,
+    Emitter<ClaimsState> emit,
+  ) async {
+    emit(state.copyWith(busyId: event.id, clearFailure: true));
+    final result = await _confirmReturn(event.id);
+    result.fold(
+      (claim) => emit(state.copyWith(
+        claims: state.claims.map((item) => item.id == claim.id ? claim : item).toList(),
+      )),
       (failure) => emit(state.copyWith(clearBusy: true, failure: failure)),
     );
     emit(state.copyWith(clearBusy: true));
