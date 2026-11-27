@@ -23,6 +23,7 @@ Projet universitaire « Advanced Mobile Development » : API Express/TypeScript,
 - Flutter : `dart format --output=none --set-exit-if-changed lib test`, `flutter analyze`, `flutter test` dans `app/` — 30 tests.
 - Dernier run CI vert sur `main` : `46067765719` (API, Flutter, build web et déploiement Firebase Hosting).
 - Aucun secret de production n’est versionné : `API_BASE_URL` et `FIREBASE_SERVICE_ACCOUNT` sont fournis par GitHub Actions.
+- Un scan de l’historique git doit être exécuté avant la soutenance pour confirmer l’absence de secrets.
 
 ## Démarrage
 
