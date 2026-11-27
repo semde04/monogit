@@ -39,6 +39,7 @@ flutter build web --release --dart-define=API_BASE_URL=https://votre-api.example
 - Liste, recherche temporisée, filtres, détail, publication et clôture optimiste des annonces, avec cache local et états de chargement/vide/erreur.
 - Réclamations, acceptation/refus, confirmation de restitution et conversations privées liées à une réclamation.
 - Modération des annonces (rôle `admin`) : retrait/rétablissement avec motif.
+- Supervision (rôle `admin`) : comptes créés, dates d’inscription, compteurs du jour et journal d’activité filtrable/paginé (`/admin/activity`).
 - Photos enregistrées en base64 via l’API (limite serveur : 800 000 caractères).
 - Notifications push Firebase : enregistrement de l’installation auprès de l’API.
 

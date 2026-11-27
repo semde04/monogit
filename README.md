@@ -65,7 +65,8 @@ Base : `/api/v1`. `🔒` = access token Bearer requis, `👑` = rôle `admin` re
 | POST | `/claims/:claimId/confirm-return` | 🔒 | Confirmation de restitution par les deux parties |
 | GET | `/messages/claims/:claimId` | 🔒 | Historique paginé d’une conversation |
 | POST | `/messages` | 🔒 | Envoyer un message dans une réclamation |
-| GET | `/admin/overview` | 👑 | Statistiques et listes paginées |
+| GET | `/admin/overview` | 👑 | Statistiques (dont comptes/actions du jour) et listes paginées |
+| GET | `/admin/activity` | 👑 | Journal paginé des activités (`?type=auth.register`...) |
 | PATCH | `/admin/items/:itemId/moderation` | 👑 | Retrait/rétablissement d’une annonce |
 
 Pagination : `?page=1&limit=20` sur toutes les listes ; `page` ≥ 1, `limit` entre 1 et 50. Les réponses de liste contiennent `{ "data": [...], "meta": { "page", "limit", "total", "totalPages" } }`. Les erreurs suivent `{ "error": "CODE", "message": "...", "details": ... }` (422 pour une validation échouée).

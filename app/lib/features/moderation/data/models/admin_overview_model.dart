@@ -14,6 +14,8 @@ class AdminOverviewModel {
         itemCount: _integer(stats['items']),
         claimCount: _integer(stats['claims']),
         pendingClaimCount: _integer(stats['pendingClaims']),
+        newUsersToday: _integer(stats['newUsersToday']),
+        actionsToday: _integer(stats['actionsToday']),
         users: users.whereType<Map<String, dynamic>>().map(_user).toList(),
         items: items.whereType<Map<String, dynamic>>().map(_item).toList(),
       ),
@@ -28,6 +30,7 @@ class AdminOverviewModel {
     email: json['email']?.toString() ?? '',
     matricule: json['matricule']?.toString() ?? '—',
     role: json['role']?.toString() ?? 'user',
+    createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? ''),
   );
 
   static AdminItemSummary _item(Map<String, dynamic> json) {

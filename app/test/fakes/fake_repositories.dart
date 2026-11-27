@@ -9,6 +9,7 @@ import 'package:lostfound_app/features/items/domain/entities/item.dart';
 import 'package:lostfound_app/features/items/domain/repositories/item_repository.dart';
 import 'package:lostfound_app/features/messages/domain/entities/chat_message.dart';
 import 'package:lostfound_app/features/messages/domain/repositories/message_repository.dart';
+import 'package:lostfound_app/features/moderation/domain/entities/admin_activity.dart';
 import 'package:lostfound_app/features/moderation/domain/entities/admin_overview.dart';
 import 'package:lostfound_app/features/moderation/domain/repositories/moderation_repository.dart';
 
@@ -54,6 +55,8 @@ final testOverview = AdminOverview(
   itemCount: 1,
   claimCount: 1,
   pendingClaimCount: 1,
+  newUsersToday: 1,
+  actionsToday: 2,
   users: const [
     AdminUserSummary(
       id: 'u1',
@@ -201,15 +204,41 @@ class FakeMessageRepository implements MessageRepository {
       sentResult ?? Ok<ChatMessage>(testMessage);
 }
 
+final testActivityPage = AdminActivityPage(
+  items: [
+    AdminActivity(
+      id: 'a1',
+      type: 'auth.register',
+      actorName: 'Ada',
+      summary: 'Nouveau compte créé : Ada',
+      createdAt: DateTime(2026),
+    ),
+  ],
+  page: 1,
+  totalPages: 1,
+);
+
 class FakeModerationRepository implements ModerationRepository {
-  FakeModerationRepository({this.overviewResult, this.moderationResult});
+  FakeModerationRepository({
+    this.overviewResult,
+    this.activityResult,
+    this.moderationResult,
+  });
 
   Result<AdminOverview>? overviewResult;
+  Result<AdminActivityPage>? activityResult;
   Result<void>? moderationResult;
 
   @override
   Future<Result<AdminOverview>> getOverview() async =>
       overviewResult ?? Ok<AdminOverview>(testOverview);
+
+  @override
+  Future<Result<AdminActivityPage>> getActivity({
+    int page = 1,
+    int limit = 20,
+    String? type,
+  }) async => activityResult ?? Ok<AdminActivityPage>(testActivityPage);
 
   @override
   Future<Result<void>> setItemRemoved(

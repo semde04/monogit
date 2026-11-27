@@ -3,6 +3,7 @@ import { AppError } from '../../shared/errors.ts';
 import { ItemModel, type Item } from './item.model.ts';
 import { ClaimModel } from '../claims/claim.model.ts';
 import { sendPushToUser } from '../../shared/push-notifications.ts';
+import { recordActivity } from '../admin/activity.service.ts';
 import type { CreateItemInput, UpdateItemInput } from './item.schemas.ts';
 
 type ItemFilters = {
@@ -106,6 +107,13 @@ export async function createItem(input: CreateItemInput, ownerId: string) {
   if (item.type === 'FOUND') {
     void notifyPossibleMatches(item).catch(() => undefined);
   }
+  await recordActivity({
+    type: 'item.created',
+    actorId: ownerId,
+    summary: `A publié une annonce ${item.type.toLowerCase()} : « ${item.title} »`,
+    targetType: 'item',
+    targetId: item.id,
+  });
   return item;
 }
 
@@ -123,6 +131,13 @@ export async function updateItem(
     { new: true, runValidators: true },
   );
   if (!item) throw new AppError('Objet introuvable.', 404, 'ITEM_NOT_FOUND');
+  await recordActivity({
+    type: 'item.updated',
+    actorId: ownerId,
+    summary: `A modifié l’annonce « ${item.title} »`,
+    targetType: 'item',
+    targetId: item.id,
+  });
   return item;
 }
 
@@ -133,10 +148,19 @@ export async function deleteItem(itemId: string, ownerId: string): Promise<void>
   if (await ClaimModel.exists({ item: itemId, status: 'accepted' })) {
     throw new AppError('Terminez la réclamation et confirmez la restitution avant de supprimer cette annonce.', 409, 'CLAIM_IN_PROGRESS');
   }
-  const result = await ItemModel.deleteOne({ _id: itemId, owner: ownerId });
-  if (result.deletedCount === 0) {
+  const deleted = await ItemModel.findOneAndDelete(
+    { _id: itemId, owner: ownerId },
+  ).select('title');
+  if (!deleted) {
     throw new AppError('Objet introuvable.', 404, 'ITEM_NOT_FOUND');
   }
+  await recordActivity({
+    type: 'item.deleted',
+    actorId: ownerId,
+    summary: `A supprimé l’annonce « ${deleted.title} »`,
+    targetType: 'item',
+    targetId: itemId,
+  });
 }
 
 export async function closeItem(itemId: string, userId: string) {
@@ -150,5 +174,12 @@ export async function closeItem(itemId: string, userId: string) {
   }
   item.isClosed = true;
   await item.save();
+  await recordActivity({
+    type: 'item.closed',
+    actorId: userId,
+    summary: `A clôturé l’annonce « ${item.title} »`,
+    targetType: 'item',
+    targetId: item.id,
+  });
   return item;
 }

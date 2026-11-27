@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/injection.dart';
+import '../../domain/entities/admin_activity.dart';
 import '../../domain/entities/admin_overview.dart';
 import '../bloc/moderation_bloc.dart';
 
@@ -12,10 +13,48 @@ class AdminPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => BlocProvider(
-    create: (_) => getIt<ModerationBloc>()..add(const AdminOverviewRequested()),
+    create: (_) {
+      final bloc = getIt<ModerationBloc>()..add(const AdminOverviewRequested());
+      bloc.add(const AdminActivityRequested());
+      return bloc;
+    },
     child: const _AdminView(),
   );
 }
+
+void _refreshAll(BuildContext context) {
+  final bloc = context.read<ModerationBloc>();
+  bloc
+    ..add(const AdminOverviewRequested())
+    ..add(const AdminActivityRequested());
+}
+
+const _activityFilters = <String?, String>{
+  null: 'Tout',
+  'auth.register': 'Comptes',
+  'item.created': 'Annonces',
+  'claim.created': 'Réclamations',
+  'message.sent': 'Messages',
+  'admin.moderation': 'Modération',
+};
+
+String _formatDate(DateTime value) =>
+    '${value.day.toString().padLeft(2, '0')}/${value.month.toString().padLeft(2, '0')}/${value.year} '
+    '${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}';
+
+IconData _activityIcon(String type) => switch (type) {
+  'auth.register' || 'auth.login' => Icons.person_add_outlined,
+  'item.created' ||
+  'item.updated' ||
+  'item.closed' ||
+  'item.deleted' => Icons.inventory_2_outlined,
+  'claim.created' ||
+  'claim.status' ||
+  'claim.returned' => Icons.assignment_turned_in_outlined,
+  'message.sent' => Icons.chat_bubble_outline,
+  'admin.moderation' => Icons.shield_outlined,
+  _ => Icons.bolt_outlined,
+};
 
 class _AdminView extends StatelessWidget {
   const _AdminView();
@@ -35,9 +74,7 @@ class _AdminView extends StatelessWidget {
         actions: [
           IconButton(
             tooltip: 'Actualiser',
-            onPressed: () => context.read<ModerationBloc>().add(
-              const AdminOverviewRequested(),
-            ),
+            onPressed: () => _refreshAll(context),
             icon: const Icon(Icons.refresh),
           ),
         ],
@@ -66,9 +103,7 @@ class _AdminView extends StatelessWidget {
             );
           }
           return RefreshIndicator(
-            onRefresh: () async => context.read<ModerationBloc>().add(
-              const AdminOverviewRequested(),
-            ),
+            onRefresh: () async => _refreshAll(context),
             child: Align(
               alignment: Alignment.topCenter,
               child: ConstrainedBox(
@@ -104,8 +139,76 @@ class _AdminView extends StatelessWidget {
                           label: 'En attente',
                           value: overview.pendingClaimCount,
                         ),
+                        _Metric(
+                          label: 'Comptes aujourd’hui',
+                          value: overview.newUsersToday,
+                        ),
+                        _Metric(
+                          label: 'Actions aujourd’hui',
+                          value: overview.actionsToday,
+                        ),
                       ],
                     ),
+                    const SizedBox(height: 24),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Activité récente',
+                            style: Theme.of(context).textTheme.titleLarge
+                                ?.copyWith(fontWeight: FontWeight.w800),
+                          ),
+                        ),
+                        if (state.activityLoading)
+                          const SizedBox.square(
+                            dimension: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        for (final entry in _activityFilters.entries)
+                          ChoiceChip(
+                            label: Text(entry.value),
+                            selected: state.activityType == entry.key,
+                            onSelected: (_) => context
+                                .read<ModerationBloc>()
+                                .add(AdminActivityRequested(type: entry.key)),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    if (state.activityFailure != null &&
+                        state.activityPage == null)
+                      _HintCard(message: state.activityFailure!.message)
+                    else if (state.activityPage?.items.isEmpty ?? true)
+                      const _HintCard(
+                        message: 'Aucune activité enregistrée pour ce filtre.',
+                      )
+                    else
+                      ...state.activityPage!.items.map(
+                        (activity) => _ActivityCard(activity: activity),
+                      ),
+                    if ((state.activityPage?.totalPages ?? 0) >
+                        (state.activityPage?.page ?? 0))
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton.icon(
+                          onPressed: state.activityLoading
+                              ? null
+                              : () => context.read<ModerationBloc>().add(
+                                  AdminActivityRequested(
+                                    page: (state.activityPage?.page ?? 1) + 1,
+                                    type: state.activityType,
+                                  ),
+                                ),
+                          icon: const Icon(Icons.expand_more),
+                          label: const Text('Voir plus'),
+                        ),
+                      ),
                     const SizedBox(height: 24),
                     Text(
                       'Annonces récentes',
@@ -142,6 +245,25 @@ class _AdminView extends StatelessWidget {
           );
         },
       ),
+    ),
+  );
+}
+
+class _ActivityCard extends StatelessWidget {
+  const _ActivityCard({required this.activity});
+  final AdminActivity activity;
+
+  @override
+  Widget build(BuildContext context) => Card(
+    child: ListTile(
+      leading: CircleAvatar(
+        child: Icon(_activityIcon(activity.type), size: 18),
+      ),
+      title: Text(activity.summary),
+      subtitle: Text(
+        '${activity.actorName} · ${_formatDate(activity.createdAt)}',
+      ),
+      dense: true,
     ),
   );
 }
@@ -319,7 +441,10 @@ class _UserCard extends StatelessWidget {
         child: Text(user.name.isEmpty ? '?' : user.name[0].toUpperCase()),
       ),
       title: Text(user.name),
-      subtitle: Text('${user.email}\nMatricule : ${user.matricule}'),
+      subtitle: Text(
+        '${user.email}\nMatricule : ${user.matricule}'
+        '${user.createdAt == null ? '' : '\nInscrit le ${_formatDate(user.createdAt!)}'}',
+      ),
       isThreeLine: true,
       trailing: Text(user.role == 'admin' ? 'Admin' : 'Étudiant'),
     ),

@@ -3,6 +3,7 @@ import { AppError } from '../../shared/errors.ts';
 import { hashPassword } from '../../shared/password.ts';
 import { UserModel } from './user.model.ts';
 import { issueTokenPair } from './token.service.ts';
+import { recordActivity } from '../admin/activity.service.ts';
 import type { LoginInput, RegisterInput } from './auth.schemas.ts';
 
 export async function registerUser(input: RegisterInput) {
@@ -43,6 +44,13 @@ export async function registerUser(input: RegisterInput) {
   }
 
   const tokens = await issueTokenPair(user.id);
+  await recordActivity({
+    type: 'auth.register',
+    actorId: user.id,
+    summary: `Nouveau compte créé : ${user.name}`,
+    targetType: 'user',
+    targetId: user.id,
+  });
   return {
     ...tokens,
     user: { id: user.id, name: user.name, email: user.email, matricule: user.matricule, role: user.role },
@@ -56,6 +64,13 @@ export async function loginUser(input: LoginInput) {
   }
 
   const tokens = await issueTokenPair(user.id);
+  await recordActivity({
+    type: 'auth.login',
+    actorId: user.id,
+    summary: `Connexion de ${user.name}`,
+    targetType: 'user',
+    targetId: user.id,
+  });
   return {
     ...tokens,
     user: { id: user.id, name: user.name, email: user.email, matricule: user.matricule, role: user.role },

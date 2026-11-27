@@ -3,17 +3,28 @@ import { UserModel } from '../auth/user.model.ts';
 import { ClaimModel } from '../claims/claim.model.ts';
 import { ItemModel } from '../items/item.model.ts';
 import { AppError } from '../../shared/errors.ts';
-import type { ModerateItemInput } from './admin.schemas.ts';
+import { ActivityModel } from './activity.model.ts';
+import { recordActivity } from './activity.service.ts';
+import type { ActivityQueryInput, ModerateItemInput } from './admin.schemas.ts';
 import type { PaginationInput } from '../../shared/pagination.ts';
+import { listActivity } from './activity.service.ts';
+
+function startOfToday(): Date {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+}
 
 export async function getAdminOverview(pagination: PaginationInput) {
   const skip = (pagination.page - 1) * pagination.limit;
-  const [users, items, claims, pendingClaims, recentUsers, recentItems] =
+  const since = startOfToday();
+  const [users, items, claims, pendingClaims, newUsersToday, actionsToday, recentUsers, recentItems] =
     await Promise.all([
       UserModel.countDocuments(),
       ItemModel.countDocuments(),
       ClaimModel.countDocuments(),
       ClaimModel.countDocuments({ status: 'pending' }),
+      UserModel.countDocuments({ createdAt: { $gte: since } }),
+      ActivityModel.countDocuments({ createdAt: { $gte: since } }),
       UserModel.find()
         .select('_id name email matricule role createdAt')
         .sort({ createdAt: -1 })
@@ -30,11 +41,15 @@ export async function getAdminOverview(pagination: PaginationInput) {
     ]);
 
   return {
-    stats: { users, items, claims, pendingClaims },
+    stats: { users, items, claims, pendingClaims, newUsersToday, actionsToday },
     recentUsers,
     recentItems,
     totals: { users, items },
   };
+}
+
+export async function getActivity(query: ActivityQueryInput) {
+  return listActivity(query, query.type);
 }
 
 export async function moderateItem(
@@ -62,5 +77,14 @@ export async function moderateItem(
   item.moderatedBy = input.isRemoved ? new Types.ObjectId(adminId) : undefined;
   item.moderatedAt = input.isRemoved ? new Date() : undefined;
   await item.save();
+  await recordActivity({
+    type: 'admin.moderation',
+    actorId: adminId,
+    summary: input.isRemoved
+      ? `A masqué l’annonce « ${item.title} » (${input.reason})`
+      : `A rétabli l’annonce « ${item.title} »`,
+    targetType: 'item',
+    targetId: item.id,
+  });
   return item;
 }

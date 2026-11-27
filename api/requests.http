@@ -152,7 +152,11 @@ Content-Type: application/json
 GET {{base}}/admin/overview?page=1&limit=20
 Authorization: Bearer {{adminToken}}
 
-### 18. Modérer une annonce
+### 18. Journal d’activité administrateur
+GET {{base}}/admin/activity?page=1&limit=20&type=auth.register
+Authorization: Bearer {{adminToken}}
+
+### 19. Modérer une annonce
 PATCH {{base}}/admin/items/{{itemId}}/moderation
 Authorization: Bearer {{adminToken}}
 Content-Type: application/json

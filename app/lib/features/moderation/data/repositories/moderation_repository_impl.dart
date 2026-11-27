@@ -1,5 +1,6 @@
 import '../../../../core/error/result.dart';
 import '../../../../core/network/api_result.dart';
+import '../../domain/entities/admin_activity.dart';
 import '../../domain/entities/admin_overview.dart';
 import '../../domain/repositories/moderation_repository.dart';
 import '../datasources/moderation_remote_data_source.dart';
@@ -11,6 +12,15 @@ class ModerationRepositoryImpl implements ModerationRepository {
   @override
   Future<Result<AdminOverview>> getOverview() =>
       captureApi(() async => (await _remote.getOverview()).entity);
+
+  @override
+  Future<Result<AdminActivityPage>> getActivity({
+    int page = 1,
+    int limit = 20,
+    String? type,
+  }) => captureApi(
+    () => _remote.getActivity(page: page, limit: limit, type: type),
+  );
 
   @override
   Future<Result<void>> setItemRemoved(

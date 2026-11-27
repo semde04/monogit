@@ -61,4 +61,30 @@ void main() {
       expect(bloc.state.failure, failure);
     },
   );
+
+  blocTest<ModerationBloc, ModerationState>(
+    'charge le journal d’activité avec son filtre',
+    build: () => ModerationBloc(FakeModerationRepository()),
+    act: (bloc) =>
+        bloc.add(const AdminActivityRequested(type: 'auth.register')),
+    verify: (bloc) {
+      expect(bloc.state.activityPage, testActivityPage);
+      expect(bloc.state.activityType, 'auth.register');
+      expect(bloc.state.activityLoading, isFalse);
+      expect(bloc.state.activityFailure, isNull);
+    },
+  );
+
+  blocTest<ModerationBloc, ModerationState>(
+    'signale un échec de chargement du journal d’activité',
+    build: () => ModerationBloc(
+      FakeModerationRepository(activityResult: const Err(failure)),
+    ),
+    act: (bloc) => bloc.add(const AdminActivityRequested()),
+    verify: (bloc) {
+      expect(bloc.state.activityPage, isNull);
+      expect(bloc.state.activityFailure, failure);
+      expect(bloc.state.activityLoading, isFalse);
+    },
+  );
 }

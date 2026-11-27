@@ -4,6 +4,7 @@ import { ItemModel } from '../items/item.model.ts';
 import { ClaimModel } from './claim.model.ts';
 import { UserModel } from '../auth/user.model.ts';
 import { sendPushToUser } from '../../shared/push-notifications.ts';
+import { recordActivity } from '../admin/activity.service.ts';
 import type { CreateClaimInput, UpdateClaimStatusInput } from './claim.schemas.ts';
 import type { PaginationInput } from '../../shared/pagination.ts';
 
@@ -56,6 +57,13 @@ export async function createClaim(claimantId: string, input: CreateClaimInput) {
     throw error;
   }
 
+  await recordActivity({
+    type: 'claim.created',
+    actorId: claimantId,
+    summary: `A réclamé l’objet « ${item.title} »`,
+    targetType: 'claim',
+    targetId: claim.id,
+  });
   const claimant = await UserModel.findById(claimantId).select('name').lean();
   if (claimant) {
     void sendPushToUser(
@@ -115,6 +123,13 @@ export async function updateClaimStatus(
   if (!updated) {
     throw new AppError('Cette réclamation a déjà été traitée.', 409, 'CLAIM_ALREADY_RESOLVED');
   }
+  await recordActivity({
+    type: 'claim.status',
+    actorId: ownerId,
+    summary: `A ${input.status === 'accepted' ? 'accepté' : 'refusé'} une réclamation pour « ${claim.itemTitleSnapshot ?? 'un objet'} »`,
+    targetType: 'claim',
+    targetId: updated.id,
+  });
   if (input.status === 'accepted') {
     const item = await ItemModel.findById(claim.item).select('title owner');
     void sendPushToUser(claim.claimant.toString(), {
@@ -177,6 +192,13 @@ export async function confirmClaimReturn(claimId: string, userId: string) {
     item.isClosed = true;
     await item.save();
     await claim.save();
+    await recordActivity({
+      type: 'claim.returned',
+      actorId: userId,
+      summary: `Restitution confirmée pour « ${item.title} »`,
+      targetType: 'claim',
+      targetId: claim.id,
+    });
     void sendPushToUser(otherId, {
       title: 'Restitution confirmée',
       body: `La remise de « ${item.title} » est confirmée par les deux personnes.`,
@@ -185,6 +207,13 @@ export async function confirmClaimReturn(claimId: string, userId: string) {
   }
 
   await claim.save();
+  await recordActivity({
+    type: 'claim.returned',
+    actorId: userId,
+    summary: `A confirmé la remise de « ${item.title} »`,
+    targetType: 'claim',
+    targetId: claim.id,
+  });
   void sendPushToUser(otherId, {
     title: 'Confirmation de restitution',
     body: `L’autre participant confirme la remise de « ${item.title} ». Confirmez à votre tour quand vous l’avez reçu/remis.`,

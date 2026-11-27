@@ -8,9 +8,12 @@ class AdminOverview extends Equatable {
     required this.pendingClaimCount,
     required this.users,
     required this.items,
+    this.newUsersToday = 0,
+    this.actionsToday = 0,
   });
 
   final int userCount, itemCount, claimCount, pendingClaimCount;
+  final int newUsersToday, actionsToday;
   final List<AdminUserSummary> users;
   final List<AdminItemSummary> items;
 
@@ -20,6 +23,8 @@ class AdminOverview extends Equatable {
     itemCount,
     claimCount,
     pendingClaimCount,
+    newUsersToday,
+    actionsToday,
     users,
     items,
   ];
@@ -32,12 +37,14 @@ class AdminUserSummary extends Equatable {
     required this.email,
     required this.matricule,
     required this.role,
+    this.createdAt,
   });
 
   final String id, name, email, matricule, role;
+  final DateTime? createdAt;
 
   @override
-  List<Object?> get props => [id, name, email, matricule, role];
+  List<Object?> get props => [id, name, email, matricule, role, createdAt];
 }
 
 class AdminItemSummary extends Equatable {

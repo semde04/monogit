@@ -65,4 +65,47 @@ describe('Admin API', () => {
     assert.equal(restored.status, 200);
     assert.equal(restored.body.data.isRemoved, false);
   });
+
+  it('journalise les activités et expose les dates de création des comptes', async () => {
+    const student = await registerUser('student@univ.fr');
+    await api
+      .post('/api/v1/items')
+      .set(bearer(student.accessToken))
+      .send({
+        title: 'Carnet vert',
+        description: 'Trouvé en cours',
+        type: 'LOST',
+        category: 'OTHER',
+        location: 'Amphi A',
+      });
+
+    const admin = await registerUser('admin@univ.fr');
+    await UserModel.updateOne({ email: 'admin@univ.fr' }, { $set: { role: 'admin' } });
+
+    const overview = await api
+      .get('/api/v1/admin/overview')
+      .set(bearer(admin.accessToken));
+    assert.equal(overview.status, 200);
+    assert.ok(overview.body.data.stats.newUsersToday >= 2);
+    assert.ok(overview.body.data.stats.actionsToday >= 3);
+    assert.ok(overview.body.data.recentUsers[0].createdAt);
+
+    const activity = await api
+      .get('/api/v1/admin/activity?page=1&limit=20')
+      .set(bearer(admin.accessToken));
+    assert.equal(activity.status, 200);
+    assert.equal(activity.body.meta.limit, 20);
+    const types = activity.body.data.map((entry: { type: string }) => entry.type);
+    assert.ok(types.includes('auth.register'));
+    assert.ok(types.includes('item.created'));
+
+    const filtered = await api
+      .get('/api/v1/admin/activity?type=item.created')
+      .set(bearer(admin.accessToken));
+    assert.equal(filtered.status, 200);
+    assert.ok(filtered.body.data.length >= 1);
+    assert.ok(
+      filtered.body.data.every((entry: { type: string }) => entry.type === 'item.created'),
+    );
+  });
 });

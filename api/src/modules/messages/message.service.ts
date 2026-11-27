@@ -5,6 +5,7 @@ import { ClaimModel } from '../claims/claim.model.ts';
 import { MessageModel } from './message.model.ts';
 import type { CreateMessageInput } from './message.schemas.ts';
 import type { PaginationInput } from '../../shared/pagination.ts';
+import { recordActivity } from '../admin/activity.service.ts';
 
 async function assertClaimParticipant(claimId: string, userId: string): Promise<void> {
   if (!isValidObjectId(claimId)) {
@@ -48,9 +49,17 @@ export async function createMessage(
   if (claim?.status !== 'accepted') {
     throw new AppError('Cette conversation est en lecture seule car l’objet a été restitué.', 409, 'CONVERSATION_CLOSED');
   }
-  return MessageModel.create({
+  const message = await MessageModel.create({
     claim: claimId,
     sender: senderId,
     body: input.text,
   });
+  await recordActivity({
+    type: 'message.sent',
+    actorId: senderId,
+    summary: 'A envoyé un message dans une conversation',
+    targetType: 'claim',
+    targetId: claimId,
+  });
+  return message;
 }
