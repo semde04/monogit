@@ -102,7 +102,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         (failure) => emit(
           AuthState(
             status: AuthStatus.unauthenticated,
-            failure: failure.code == 'NO_SESSION' ? null : failure,
+            failure: failure.code == 'NO_SESSION' || failure is UnknownFailure
+                ? null
+                : failure,
           ),
         ),
       );
@@ -114,12 +116,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         ),
       );
     } catch (_) {
-      emit(
-        const AuthState(
-          status: AuthStatus.unauthenticated,
-          failure: UnknownFailure(),
-        ),
-      );
+      emit(const AuthState(status: AuthStatus.unauthenticated));
     }
   }
 

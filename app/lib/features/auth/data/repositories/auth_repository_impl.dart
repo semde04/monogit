@@ -52,7 +52,13 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<Result<AppUser>> currentUser() async {
-    if (await _tokens.accessToken == null) {
+    final String? access;
+    try {
+      access = await _tokens.accessToken;
+    } catch (_) {
+      return const Err(ServerFailure('Session absente.', code: 'NO_SESSION'));
+    }
+    if (access == null) {
       return const Err(ServerFailure('Session absente.', code: 'NO_SESSION'));
     }
     return captureApi(() async => (await _remote.me()).toEntity());

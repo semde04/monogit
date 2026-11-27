@@ -85,16 +85,20 @@ class FakeAuthRepository implements AuthRepository {
     this.currentResult,
     this.loginResult,
     this.registerResult,
+    this.throwOnCurrent = false,
   });
 
   Result<AppUser>? currentResult;
+  bool throwOnCurrent;
   Result<AuthSession>? loginResult;
   Result<AuthSession>? registerResult;
   int logoutCalls = 0;
 
   @override
-  Future<Result<AppUser>> currentUser() async =>
-      currentResult ?? const Ok<AppUser>(testUser);
+  Future<Result<AppUser>> currentUser() async {
+    if (throwOnCurrent) throw StateError('Stockage indisponible');
+    return currentResult ?? const Ok<AppUser>(testUser);
+  }
 
   @override
   Future<Result<AuthSession>> login(String email, String password) async =>

@@ -48,4 +48,14 @@ void main() {
     },
     verify: (bloc) => expect(bloc.state.status, AuthStatus.unauthenticated),
   );
+
+  blocTest<AuthBloc, AuthState>(
+    'masque les erreurs de lecture de session au démarrage',
+    build: () => AuthBloc(FakeAuthRepository(throwOnCurrent: true)),
+    act: (bloc) async => Future<void>.delayed(Duration.zero),
+    verify: (bloc) {
+      expect(bloc.state.status, AuthStatus.unauthenticated);
+      expect(bloc.state.failure, isNull);
+    },
+  );
 }
