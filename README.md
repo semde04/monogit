@@ -16,6 +16,13 @@ Projet universitaire « Advanced Mobile Development » : API Express/TypeScript,
 - Les écrans principaux sont `discover`, `items/:id`, `items/new`, `claims`, `chat/:claimId`, `profile` et `admin`.
 - Le portail web réutilise les mêmes couches domaine/données/présentation que l’application mobile, avec un build Flutter dédié.
 
+## Qualité
+
+- API : `npm run typecheck` puis `npm test` dans `api/` — 21 tests d’intégration avec MongoDB de test.
+- Flutter : `dart format --output=none --set-exit-if-changed lib test`, `flutter analyze`, `flutter test` dans `app/` — 30 tests.
+- Dernier run CI vert sur `main` : `46067765719` (API, Flutter, build web et déploiement Firebase Hosting).
+- Aucun secret de production n’est versionné : `API_BASE_URL` et `FIREBASE_SERVICE_ACCOUNT` sont fournis par GitHub Actions.
+
 ## Démarrage
 
 API :
