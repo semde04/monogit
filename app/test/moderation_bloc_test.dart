@@ -63,6 +63,73 @@ void main() {
   );
 
   blocTest<ModerationBloc, ModerationState>(
+    'charge toutes les publications avec leur pagination',
+    build: () => ModerationBloc(FakeModerationRepository()),
+    act: (bloc) => bloc.add(const AdminItemsRequested()),
+    verify: (bloc) {
+      expect(bloc.state.adminItemsPage, testAdminItemsPage);
+      expect(bloc.state.adminItemsLoading, isFalse);
+      expect(bloc.state.adminItemsFailure, isNull);
+    },
+  );
+
+  final filterRepository = FakeModerationRepository();
+  blocTest<ModerationBloc, ModerationState>(
+    'filtre les publications sur les objets retrouvés',
+    build: () => ModerationBloc(filterRepository),
+    act: (bloc) => bloc.add(const AdminItemsRequested(isReturned: true)),
+    verify: (bloc) {
+      expect(filterRepository.lastItemsReturned, isTrue);
+      expect(filterRepository.lastItemsPage, 1);
+      expect(bloc.state.adminItemsFilters.isReturned, isTrue);
+      expect(bloc.state.adminItemsPage, testAdminItemsPage);
+    },
+  );
+
+  final suspensionRepository = FakeModerationRepository();
+  blocTest<ModerationBloc, ModerationState>(
+    'suspend un étudiant et rafraîchit le journal',
+    build: () => ModerationBloc(suspensionRepository),
+    act: (bloc) {
+      bloc.add(const AdminOverviewRequested());
+      bloc.add(
+        const AdminUserSuspensionChanged(
+          userId: 'u1',
+          isSuspended: true,
+          reason: 'Abus de signalement',
+        ),
+      );
+    },
+    verify: (bloc) {
+      expect(suspensionRepository.suspendedUserId, 'u1');
+      expect(suspensionRepository.suspendedValue, isTrue);
+      expect(suspensionRepository.suspensionReason, 'Abus de signalement');
+      expect(bloc.state.overview!.users.single.isSuspended, isTrue);
+      expect(bloc.state.busyUserId, isNull);
+      expect(bloc.state.failure, isNull);
+      expect(bloc.state.activityPage, testActivityPage);
+    },
+  );
+
+  blocTest<ModerationBloc, ModerationState>(
+    'signale un échec de suspension',
+    build: () => ModerationBloc(
+      FakeModerationRepository(suspensionResult: const Err(failure)),
+    ),
+    act: (bloc) => bloc.add(
+      const AdminUserSuspensionChanged(
+        userId: 'u1',
+        isSuspended: true,
+        reason: 'Abus',
+      ),
+    ),
+    verify: (bloc) {
+      expect(bloc.state.busyUserId, isNull);
+      expect(bloc.state.failure, failure);
+    },
+  );
+
+  blocTest<ModerationBloc, ModerationState>(
     'charge le journal d’activité avec son filtre',
     build: () => ModerationBloc(FakeModerationRepository()),
     act: (bloc) =>

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { after, before, beforeEach, describe, it } from 'node:test';
+import { UserModel } from '../src/modules/auth/user.model.ts';
 import {
   api,
   bearer,
@@ -77,5 +78,65 @@ describe('Auth API', () => {
 
     assert.equal(duplicate.status, 409);
     assert.equal(duplicate.body.error, 'MATRICULE_TAKEN');
+  });
+
+  it('bloque un compte suspendu sans bloquer le rafraîchissement ni le profil', async () => {
+    const student = await registerUser('suspended@univ.fr');
+    await api.post('/api/v1/auth/register').send({
+      name: 'Admin Test',
+      email: 'admin-auth@univ.fr',
+      matricule: 'ADMIN-AUTH',
+      password: 'Password123!',
+    });
+    await UserModel.updateOne({ email: 'admin-auth@univ.fr' }, { $set: { role: 'admin' } });
+    const adminLogin = await api
+      .post('/api/v1/auth/login')
+      .send({ email: 'admin-auth@univ.fr', password: 'Password123!' });
+    assert.equal(adminLogin.status, 200);
+
+    const suspended = await api
+      .patch(`/api/v1/admin/users/${student.user.id}/suspension`)
+      .set(bearer(adminLogin.body.data.accessToken))
+      .send({ isSuspended: true, reason: 'Compte signalé' });
+    assert.equal(suspended.status, 200);
+
+    const login = await api
+      .post('/api/v1/auth/login')
+      .send({ email: 'suspended@univ.fr', password: 'Password123!' });
+    assert.equal(login.status, 403);
+    assert.equal(login.body.error, 'ACCOUNT_SUSPENDED');
+
+    const refreshed = await api
+      .post('/api/v1/auth/refresh')
+      .send({ refreshToken: student.refreshToken });
+    assert.equal(refreshed.status, 200);
+
+    const profile = await api
+      .get('/api/v1/auth/me')
+      .set(bearer(student.accessToken));
+    assert.equal(profile.status, 200);
+    assert.equal(profile.body.data.isSuspended, true);
+
+    const postItem = await api
+      .post('/api/v1/items')
+      .set(bearer(student.accessToken))
+      .send({
+        title: 'Clés suspendues',
+        description: 'Publication bloquée',
+        type: 'FOUND',
+        category: 'OTHER',
+        location: 'Campus',
+      });
+    assert.equal(postItem.status, 403);
+    assert.equal(postItem.body.error, 'ACCOUNT_SUSPENDED');
+
+    const claims = await api
+      .get('/api/v1/claims')
+      .set(bearer(student.accessToken));
+    assert.equal(claims.status, 403);
+    assert.equal(claims.body.error, 'ACCOUNT_SUSPENDED');
+
+    const publicItems = await api.get('/api/v1/items');
+    assert.equal(publicItems.status, 200);
   });
 });

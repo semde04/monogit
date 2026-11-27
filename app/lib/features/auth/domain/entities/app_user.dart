@@ -7,13 +7,15 @@ class AppUser extends Equatable {
     required this.email,
     this.matricule,
     this.role = 'user',
+    this.isSuspended = false,
   });
   final String id;
   final String name;
   final String email;
   final String? matricule;
   final String role;
+  final bool isSuspended;
 
   @override
-  List<Object?> get props => [id, name, email, matricule, role];
+  List<Object?> get props => [id, name, email, matricule, role, isSuspended];
 }

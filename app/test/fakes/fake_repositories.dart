@@ -13,7 +13,12 @@ import 'package:lostfound_app/features/moderation/domain/entities/admin_activity
 import 'package:lostfound_app/features/moderation/domain/entities/admin_overview.dart';
 import 'package:lostfound_app/features/moderation/domain/repositories/moderation_repository.dart';
 
-const testUser = AppUser(id: 'u1', name: 'Ada', email: 'ada@univ.fr');
+const testUser = AppUser(
+  id: 'u1',
+  name: 'Ada',
+  email: 'ada@univ.fr',
+  isSuspended: false,
+);
 const testSession = AuthSession(
   accessToken: 'access',
   refreshToken: 'refresh',
@@ -50,6 +55,22 @@ final testMessage = ChatMessage(
   createdAt: DateTime(2026),
 );
 
+final testAdminItem = AdminItemSummary(
+  id: 'i1',
+  title: 'Sac',
+  description: 'Trouvé en amphi',
+  location: 'Amphi C',
+  type: 'FOUND',
+  ownerId: 'u1',
+  category: 'BAGS',
+  ownerName: 'Ada',
+  ownerMatricule: 'A1',
+  createdAt: DateTime(2026),
+  isRemoved: false,
+  isClosed: true,
+  isReturned: true,
+);
+
 final testOverview = AdminOverview(
   userCount: 1,
   itemCount: 1,
@@ -57,6 +78,8 @@ final testOverview = AdminOverview(
   pendingClaimCount: 1,
   newUsersToday: 1,
   actionsToday: 2,
+  foundReportsToday: 1,
+  returnedItems: 1,
   users: const [
     AdminUserSummary(
       id: 'u1',
@@ -64,20 +87,16 @@ final testOverview = AdminOverview(
       email: 'ada@univ.fr',
       matricule: 'A1',
       role: 'user',
+      isSuspended: false,
     ),
   ],
-  items: [
-    AdminItemSummary(
-      id: 'i1',
-      title: 'Sac',
-      description: 'Trouvé en amphi',
-      location: 'Amphi C',
-      type: 'FOUND',
-      ownerName: 'Ada',
-      ownerMatricule: 'A1',
-      isRemoved: false,
-    ),
-  ],
+  items: [testAdminItem],
+);
+
+final testAdminItemsPage = AdminItemPage(
+  items: [testAdminItem],
+  page: 1,
+  totalPages: 2,
 );
 
 class FakeAuthRepository implements AuthRepository {
@@ -226,12 +245,26 @@ class FakeModerationRepository implements ModerationRepository {
   FakeModerationRepository({
     this.overviewResult,
     this.activityResult,
+    this.itemsResult,
     this.moderationResult,
+    this.suspensionResult,
   });
 
   Result<AdminOverview>? overviewResult;
   Result<AdminActivityPage>? activityResult;
+  Result<AdminItemPage>? itemsResult;
   Result<void>? moderationResult;
+  Result<AdminUserSummary>? suspensionResult;
+
+  int? lastItemsPage;
+  String? lastItemsSearch;
+  String? lastItemsType;
+  bool? lastItemsClosed;
+  bool? lastItemsRemoved;
+  bool? lastItemsReturned;
+  String? suspendedUserId;
+  bool? suspendedValue;
+  String? suspensionReason;
 
   @override
   Future<Result<AdminOverview>> getOverview() async =>
@@ -245,9 +278,49 @@ class FakeModerationRepository implements ModerationRepository {
   }) async => activityResult ?? Ok<AdminActivityPage>(testActivityPage);
 
   @override
+  Future<Result<AdminItemPage>> getAdminItems({
+    int page = 1,
+    String? search,
+    String? type,
+    bool? isClosed,
+    bool? isRemoved,
+    bool? isReturned,
+  }) async {
+    lastItemsPage = page;
+    lastItemsSearch = search;
+    lastItemsType = type;
+    lastItemsClosed = isClosed;
+    lastItemsRemoved = isRemoved;
+    lastItemsReturned = isReturned;
+    return itemsResult ??
+        Ok<AdminItemPage>(
+          AdminItemPage(
+            items: testAdminItemsPage.items,
+            page: page,
+            totalPages: testAdminItemsPage.totalPages,
+          ),
+        );
+  }
+
+  @override
   Future<Result<void>> setItemRemoved(
     String itemId, {
     required bool isRemoved,
     String? reason,
   }) async => moderationResult ?? const Ok<void>(null);
+
+  @override
+  Future<Result<AdminUserSummary>> setUserSuspension(
+    String userId, {
+    required bool isSuspended,
+    String? reason,
+  }) async {
+    suspendedUserId = userId;
+    suspendedValue = isSuspended;
+    suspensionReason = reason;
+    return suspensionResult ??
+        Ok<AdminUserSummary>(
+          testOverview.users.single.copyWith(isSuspended: isSuspended),
+        );
+  }
 }

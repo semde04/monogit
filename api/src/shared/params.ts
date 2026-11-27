@@ -7,3 +7,4 @@ export const objectIdSchema = z
 export const paramsWithId = z.object({ id: objectIdSchema });
 export const paramsWithClaimId = z.object({ claimId: objectIdSchema });
 export const paramsWithItemId = z.object({ itemId: objectIdSchema });
+export const paramsWithUserId = z.object({ userId: objectIdSchema });

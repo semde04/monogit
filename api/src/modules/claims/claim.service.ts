@@ -193,6 +193,13 @@ export async function confirmClaimReturn(claimId: string, userId: string) {
     await item.save();
     await claim.save();
     await recordActivity({
+      type: 'item.returned',
+      actorId: userId,
+      summary: `Objet retrouvé : « ${item.title} »`,
+      targetType: 'item',
+      targetId: item.id,
+    });
+    await recordActivity({
       type: 'claim.returned',
       actorId: userId,
       summary: `Restitution confirmée pour « ${item.title} »`,

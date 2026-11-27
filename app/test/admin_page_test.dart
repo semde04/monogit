@@ -33,6 +33,17 @@ void main() {
     expect(find.text('Nouveau compte créé : Ada'), findsOneWidget);
     expect(find.text('Sac'), findsOneWidget);
     expect(find.text('ada@univ.fr'), findsOneWidget);
+    expect(find.text('Toutes les publications'), findsOneWidget);
+    expect(find.text('Toutes'), findsOneWidget);
+    expect(find.text('Visibles'), findsOneWidget);
+    expect(find.text('Masquées'), findsOneWidget);
+    expect(find.text('Retrouvées'), findsOneWidget);
+    expect(find.text('Clôturées'), findsOneWidget);
+    expect(find.text('Retrouvé'), findsOneWidget);
+    expect(find.text('Clôturée'), findsOneWidget);
+    expect(find.text('Objets retrouvés'), findsWidgets);
+    expect(find.text('Suspendre'), findsOneWidget);
+    expect(find.text('Page 1 / 2'), findsOneWidget);
   });
 
   testWidgets('filtre les annonces et les comptes depuis la recherche', (
@@ -47,5 +58,25 @@ void main() {
 
     expect(find.text('Sac'), findsNothing);
     expect(find.text('ada@univ.fr'), findsNothing);
+  });
+
+  testWidgets('navigue entre les pages de publications', (tester) async {
+    await prepareTester(tester);
+    await tester.pumpWidget(const MaterialApp(home: AdminPage()));
+    await tester.pumpAndSettle();
+
+    TextButton previousButton() => tester.widget<TextButton>(
+      find.ancestor(
+        of: find.text('Précédent'),
+        matching: find.byType(TextButton),
+      ),
+    );
+    expect(previousButton().onPressed, isNull);
+
+    await tester.tap(find.text('Suivant'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Page 2 / 2'), findsOneWidget);
+    expect(previousButton().onPressed, isNotNull);
   });
 }

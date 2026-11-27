@@ -6,8 +6,10 @@ import '../../domain/entities/admin_activity.dart';
 import '../../domain/entities/admin_overview.dart';
 import '../../domain/repositories/moderation_repository.dart';
 import '../../domain/usecases/get_admin_activity.dart';
+import '../../domain/usecases/get_admin_items.dart';
 import '../../domain/usecases/get_admin_overview.dart';
 import '../../domain/usecases/set_item_moderation.dart';
+import '../../domain/usecases/set_user_suspension.dart';
 
 sealed class ModerationEvent extends Equatable {
   const ModerationEvent();
@@ -28,6 +30,33 @@ final class AdminActivityRequested extends ModerationEvent {
   List<Object?> get props => [page, type];
 }
 
+final class AdminItemsRequested extends ModerationEvent {
+  const AdminItemsRequested({
+    this.page = 1,
+    this.search,
+    this.type,
+    this.isClosed,
+    this.isRemoved,
+    this.isReturned,
+  });
+  final int page;
+  final String? search;
+  final String? type;
+  final bool? isClosed;
+  final bool? isRemoved;
+  final bool? isReturned;
+
+  @override
+  List<Object?> get props => [
+    page,
+    search,
+    type,
+    isClosed,
+    isRemoved,
+    isReturned,
+  ];
+}
+
 final class AdminItemModerationChanged extends ModerationEvent {
   const AdminItemModerationChanged({
     required this.itemId,
@@ -42,6 +71,20 @@ final class AdminItemModerationChanged extends ModerationEvent {
   List<Object?> get props => [itemId, isRemoved, reason];
 }
 
+final class AdminUserSuspensionChanged extends ModerationEvent {
+  const AdminUserSuspensionChanged({
+    required this.userId,
+    required this.isSuspended,
+    this.reason,
+  });
+  final String userId;
+  final bool isSuspended;
+  final String? reason;
+
+  @override
+  List<Object?> get props => [userId, isSuspended, reason];
+}
+
 class ModerationState extends Equatable {
   const ModerationState({
     this.overview,
@@ -52,6 +95,11 @@ class ModerationState extends Equatable {
     this.activityLoading = false,
     this.activityType,
     this.activityFailure,
+    this.adminItemsPage,
+    this.adminItemsLoading = false,
+    this.adminItemsFailure,
+    this.adminItemsFilters = const AdminItemsFilters(),
+    this.busyUserId,
   });
   final AdminOverview? overview;
   final bool loading;
@@ -61,6 +109,11 @@ class ModerationState extends Equatable {
   final bool activityLoading;
   final String? activityType;
   final Failure? activityFailure;
+  final AdminItemPage? adminItemsPage;
+  final bool adminItemsLoading;
+  final Failure? adminItemsFailure;
+  final AdminItemsFilters adminItemsFilters;
+  final String? busyUserId;
 
   ModerationState copyWith({
     AdminOverview? overview,
@@ -74,6 +127,13 @@ class ModerationState extends Equatable {
     String? activityType,
     Failure? activityFailure,
     bool clearActivityFailure = false,
+    AdminItemPage? adminItemsPage,
+    bool? adminItemsLoading,
+    Failure? adminItemsFailure,
+    bool clearAdminItemsFailure = false,
+    AdminItemsFilters? adminItemsFilters,
+    String? busyUserId,
+    bool clearBusyUser = false,
   }) => ModerationState(
     overview: overview ?? this.overview,
     loading: loading ?? this.loading,
@@ -85,6 +145,13 @@ class ModerationState extends Equatable {
     activityFailure: clearActivityFailure
         ? null
         : activityFailure ?? this.activityFailure,
+    adminItemsPage: adminItemsPage ?? this.adminItemsPage,
+    adminItemsLoading: adminItemsLoading ?? this.adminItemsLoading,
+    adminItemsFailure: clearAdminItemsFailure
+        ? null
+        : adminItemsFailure ?? this.adminItemsFailure,
+    adminItemsFilters: adminItemsFilters ?? this.adminItemsFilters,
+    busyUserId: clearBusyUser ? null : busyUserId ?? this.busyUserId,
   );
 
   @override
@@ -97,6 +164,11 @@ class ModerationState extends Equatable {
     activityLoading,
     activityType,
     activityFailure,
+    adminItemsPage,
+    adminItemsLoading,
+    adminItemsFailure,
+    adminItemsFilters,
+    busyUserId,
   ];
 }
 
@@ -104,16 +176,22 @@ class ModerationBloc extends Bloc<ModerationEvent, ModerationState> {
   ModerationBloc(ModerationRepository repository)
     : _getOverview = GetAdminOverview(repository),
       _getActivity = GetAdminActivity(repository),
+      _getAdminItems = GetAdminItems(repository),
       _setItemModeration = SetItemModeration(repository),
+      _setUserSuspension = SetUserSuspension(repository),
       super(const ModerationState()) {
     on<AdminOverviewRequested>(_load);
     on<AdminActivityRequested>(_loadActivity);
+    on<AdminItemsRequested>(_loadItems);
     on<AdminItemModerationChanged>(_moderate);
+    on<AdminUserSuspensionChanged>(_suspend);
   }
 
   final GetAdminOverview _getOverview;
   final GetAdminActivity _getActivity;
+  final GetAdminItems _getAdminItems;
   final SetItemModeration _setItemModeration;
+  final SetUserSuspension _setUserSuspension;
 
   Future<void> _load(
     AdminOverviewRequested event,
@@ -159,6 +237,41 @@ class ModerationBloc extends Bloc<ModerationEvent, ModerationState> {
     );
   }
 
+  Future<void> _loadItems(
+    AdminItemsRequested event,
+    Emitter<ModerationState> emit,
+  ) async {
+    final filters = AdminItemsFilters(
+      search: event.search,
+      type: event.type,
+      isClosed: event.isClosed,
+      isRemoved: event.isRemoved,
+      isReturned: event.isReturned,
+    );
+    emit(
+      state.copyWith(
+        adminItemsLoading: true,
+        clearAdminItemsFailure: true,
+        adminItemsFilters: filters,
+      ),
+    );
+    final result = await _getAdminItems(
+      page: event.page,
+      search: event.search,
+      type: event.type,
+      isClosed: event.isClosed,
+      isRemoved: event.isRemoved,
+      isReturned: event.isReturned,
+    );
+    result.fold(
+      (page) =>
+          emit(state.copyWith(adminItemsPage: page, adminItemsLoading: false)),
+      (failure) => emit(
+        state.copyWith(adminItemsLoading: false, adminItemsFailure: failure),
+      ),
+    );
+  }
+
   Future<void> _moderate(
     AdminItemModerationChanged event,
     Emitter<ModerationState> emit,
@@ -172,32 +285,66 @@ class ModerationBloc extends Bloc<ModerationEvent, ModerationState> {
     result.fold(
       (_) {
         final overview = state.overview;
-        if (overview == null) return;
-        final updatedItems = overview.items.map((item) {
-          if (item.id != event.itemId) return item;
-          return item.copyWith(
-            isRemoved: event.isRemoved,
-            moderationReason: event.isRemoved ? event.reason : null,
-          );
-        }).toList();
+        final page = state.adminItemsPage;
         emit(
           state.copyWith(
-            overview: AdminOverview(
-              userCount: overview.userCount,
-              itemCount: overview.itemCount,
-              claimCount: overview.claimCount,
-              pendingClaimCount: overview.pendingClaimCount,
-              newUsersToday: overview.newUsersToday,
-              actionsToday: overview.actionsToday,
-              users: overview.users,
-              items: updatedItems,
+            overview: overview?.copyWith(
+              items: overview.items.map((item) {
+                if (item.id != event.itemId) return item;
+                return item.copyWith(
+                  isRemoved: event.isRemoved,
+                  moderationReason: event.isRemoved ? event.reason : null,
+                );
+              }).toList(),
             ),
+            adminItemsPage: page == null
+                ? null
+                : AdminItemPage(
+                    items: page.items.map((item) {
+                      if (item.id != event.itemId) return item;
+                      return item.copyWith(
+                        isRemoved: event.isRemoved,
+                        moderationReason: event.isRemoved ? event.reason : null,
+                      );
+                    }).toList(),
+                    page: page.page,
+                    totalPages: page.totalPages,
+                  ),
             clearBusyItem: true,
           ),
         );
         add(AdminActivityRequested(type: state.activityType));
       },
       (failure) => emit(state.copyWith(clearBusyItem: true, failure: failure)),
+    );
+  }
+
+  Future<void> _suspend(
+    AdminUserSuspensionChanged event,
+    Emitter<ModerationState> emit,
+  ) async {
+    emit(state.copyWith(busyUserId: event.userId, clearFailure: true));
+    final result = await _setUserSuspension(
+      event.userId,
+      isSuspended: event.isSuspended,
+      reason: event.reason,
+    );
+    result.fold(
+      (user) {
+        final overview = state.overview;
+        emit(
+          state.copyWith(
+            overview: overview?.copyWith(
+              users: overview.users
+                  .map((current) => current.id == user.id ? user : current)
+                  .toList(),
+            ),
+            clearBusyUser: true,
+          ),
+        );
+        add(AdminActivityRequested(type: state.activityType));
+      },
+      (failure) => emit(state.copyWith(clearBusyUser: true, failure: failure)),
     );
   }
 }

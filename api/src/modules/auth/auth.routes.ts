@@ -16,6 +16,7 @@ import {
 } from './auth.schemas.ts';
 import { validateBody } from '../../shared/validate.ts';
 import { authenticate } from '../../shared/authenticate.ts';
+import { requireActiveUser } from '../../shared/require-active-user.ts';
 
 const router = Router();
 
@@ -27,12 +28,14 @@ router.get('/me', authenticate, me);
 router.put(
   '/device-installation',
   authenticate,
+  requireActiveUser,
   validateBody(deviceInstallationSchema),
   registerDeviceInstallation,
 );
 router.delete(
   '/device-installation',
   authenticate,
+  requireActiveUser,
   validateBody(deviceInstallationSchema),
   unregisterDeviceInstallation,
 );

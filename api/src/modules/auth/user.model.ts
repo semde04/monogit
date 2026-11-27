@@ -14,6 +14,10 @@ const userSchema = new Schema(
     firebaseInstallationIds: { type: [String], default: [], select: false },
     passwordHash: { type: String, required: true, select: false },
     role: { type: String, enum: ['user', 'admin'], default: 'user' },
+    isSuspended: { type: Boolean, default: false, index: true },
+    suspensionReason: { type: String, trim: true, maxlength: 300 },
+    suspendedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+    suspendedAt: { type: Date },
   },
   { timestamps: true },
 );

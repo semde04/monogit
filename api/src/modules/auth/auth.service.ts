@@ -58,9 +58,12 @@ export async function registerUser(input: RegisterInput) {
 }
 
 export async function loginUser(input: LoginInput) {
-  const user = await UserModel.findOne({ email: input.email.toLowerCase() }).select('+passwordHash');
+  const user = await UserModel.findOne({ email: input.email.toLowerCase() }).select('+passwordHash +isSuspended');
   if (!user || !(await argon2.verify(user.passwordHash, input.password))) {
     throw new AppError('Identifiants invalides.', 401, 'INVALID_CREDENTIALS');
+  }
+  if (user.isSuspended) {
+    throw new AppError('Compte suspendu.', 403, 'ACCOUNT_SUSPENDED');
   }
 
   const tokens = await issueTokenPair(user.id);
@@ -78,7 +81,7 @@ export async function loginUser(input: LoginInput) {
 }
 
 export async function getCurrentUser(userId: string) {
-  const user = await UserModel.findById(userId).select('_id name email matricule role').lean();
+  const user = await UserModel.findById(userId).select('_id name email matricule role isSuspended').lean();
   if (!user) throw new AppError('Utilisateur introuvable.', 404, 'USER_NOT_FOUND');
   return user;
 }

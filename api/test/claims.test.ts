@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { after, before, beforeEach, describe, it } from 'node:test';
+import { ActivityModel } from '../src/modules/admin/activity.model.ts';
 import {
   api,
   bearer,
@@ -104,5 +105,33 @@ describe('Claims and private messages API', () => {
       .get('/api/v1/claims?limit=100')
       .set(bearer(ownerToken));
     assert.equal(response.status, 422);
+  });
+
+  it('journalise un seul objet retrouvé après les deux confirmations', async () => {
+    const partial = await api
+      .post(`/api/v1/claims/${claimId}/confirm-return`)
+      .set(bearer(claimantToken));
+    assert.equal(partial.status, 200);
+    assert.equal(
+      await ActivityModel.countDocuments({ type: 'item.returned', targetId: itemId }),
+      0,
+    );
+
+    const complete = await api
+      .post(`/api/v1/claims/${claimId}/confirm-return`)
+      .set(bearer(ownerToken));
+    assert.equal(complete.status, 200);
+    assert.equal(complete.body.data.status, 'returned');
+
+    const foundReports = await ActivityModel.find({ type: 'item.returned' }).lean();
+    assert.equal(foundReports.length, 1);
+    const report = foundReports[0]!;
+    assert.equal(report.summary, 'Objet retrouvé : « Sac bleu »');
+    assert.equal(report.targetType, 'item');
+    assert.equal(report.targetId, itemId);
+    assert.equal(
+      await ActivityModel.countDocuments({ type: 'claim.returned' }),
+      2,
+    );
   });
 });

@@ -23,11 +23,43 @@ class ModerationRepositoryImpl implements ModerationRepository {
   );
 
   @override
+  Future<Result<AdminItemPage>> getAdminItems({
+    int page = 1,
+    String? search,
+    String? type,
+    bool? isClosed,
+    bool? isRemoved,
+    bool? isReturned,
+  }) => captureApi(
+    () => _remote.getAdminItems(
+      page: page,
+      search: search,
+      type: type,
+      isClosed: isClosed,
+      isRemoved: isRemoved,
+      isReturned: isReturned,
+    ),
+  );
+
+  @override
   Future<Result<void>> setItemRemoved(
     String itemId, {
     required bool isRemoved,
     String? reason,
   }) => captureApi(
     () => _remote.setItemRemoved(itemId, isRemoved: isRemoved, reason: reason),
+  );
+
+  @override
+  Future<Result<AdminUserSummary>> setUserSuspension(
+    String userId, {
+    required bool isSuspended,
+    String? reason,
+  }) => captureApi(
+    () => _remote.setUserSuspension(
+      userId,
+      isSuspended: isSuspended,
+      reason: reason,
+    ),
   );
 }

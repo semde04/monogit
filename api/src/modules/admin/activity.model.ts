@@ -10,8 +10,10 @@ export const activityTypes = [
   'claim.created',
   'claim.status',
   'claim.returned',
+  'item.returned',
   'message.sent',
   'admin.moderation',
+  'admin.user.suspension',
 ] as const;
 
 export type ActivityType = (typeof activityTypes)[number];

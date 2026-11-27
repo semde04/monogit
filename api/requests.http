@@ -165,3 +165,30 @@ Content-Type: application/json
   "isRemoved": true,
   "reason": "Contenu inapproprié"
 }
+
+### 20. Liste complète des annonces avec pagination et filtres administrateur
+GET {{base}}/admin/items?page=1&limit=20&search=sac&type=FOUND&isClosed=false&isRemoved=false&isReturned=false
+Authorization: Bearer {{adminToken}}
+
+### 21. Suspendre un étudiant
+PATCH {{base}}/admin/users/{{loginUser2.response.body.data.user.id}}/suspension
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "isSuspended": true,
+  "reason": "Comportement signalé en réclamation"
+}
+
+### 22. Réactiver un étudiant
+PATCH {{base}}/admin/users/{{loginUser2.response.body.data.user.id}}/suspension
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "isSuspended": false
+}
+
+### 23. Journal des objets retrouvés
+GET {{base}}/admin/activity?page=1&limit=20&type=item.returned
+Authorization: Bearer {{adminToken}}

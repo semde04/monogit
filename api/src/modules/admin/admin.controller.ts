@@ -2,8 +2,8 @@ import type { RequestHandler } from 'express';
 import { AppError } from '../../shared/errors.ts';
 import { paginationMeta, paginationSchema } from '../../shared/pagination.ts';
 import { routeParam } from '../../shared/route-param.ts';
-import { getActivity, getAdminOverview, moderateItem } from './admin.service.ts';
-import { activityQuerySchema } from './admin.schemas.ts';
+import { getActivity, getAdminOverview, listAdminItems, moderateItem, suspendUser } from './admin.service.ts';
+import { activityQuerySchema, adminItemQuerySchema } from './admin.schemas.ts';
 
 function currentUserId(req: Parameters<RequestHandler>[0]): string {
   if (!req.auth) throw new AppError('Authentification requise.', 401, 'UNAUTHORIZED');
@@ -44,4 +44,22 @@ export const patchItemModeration: RequestHandler = async (req, res) => {
     req.body,
   );
   res.json({ data: item });
+};
+
+export const getAdminItems: RequestHandler = async (req, res) => {
+  const query = adminItemQuerySchema.safeParse(req.query);
+  if (!query.success) {
+    throw new AppError('Filtres de recherche invalides.', 422, 'VALIDATION_ERROR', query.error.flatten());
+  }
+  const { items, total } = await listAdminItems(query.data);
+  res.json({ data: items, meta: paginationMeta(total, query.data) });
+};
+
+export const patchUserSuspension: RequestHandler = async (req, res) => {
+  const user = await suspendUser(
+    routeParam(req, 'userId'),
+    currentUserId(req),
+    req.body,
+  );
+  res.json({ data: user });
 };

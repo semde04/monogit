@@ -18,6 +18,7 @@ const _danger = Color(0xff9b3838);
 const _dangerSoft = Color(0xfff7e7e7);
 const _warning = Color(0xff9a6100);
 const _warningSoft = Color(0xfff4ead6);
+const _filterUnset = Object();
 
 class AdminPage extends StatelessWidget {
   const AdminPage({super.key});
@@ -26,7 +27,9 @@ class AdminPage extends StatelessWidget {
   Widget build(BuildContext context) => BlocProvider(
     create: (_) {
       final bloc = getIt<ModerationBloc>()..add(const AdminOverviewRequested());
-      bloc.add(const AdminActivityRequested());
+      bloc
+        ..add(const AdminActivityRequested())
+        ..add(const AdminItemsRequested());
       return bloc;
     },
     child: const _AdminView(),
@@ -35,9 +38,51 @@ class AdminPage extends StatelessWidget {
 
 void _refreshAll(BuildContext context) {
   final bloc = context.read<ModerationBloc>();
+  final state = bloc.state;
+  final filters = state.adminItemsFilters;
   bloc
     ..add(const AdminOverviewRequested())
-    ..add(const AdminActivityRequested());
+    ..add(const AdminActivityRequested())
+    ..add(
+      AdminItemsRequested(
+        page: state.adminItemsPage?.page ?? 1,
+        search: filters.search,
+        type: filters.type,
+        isClosed: filters.isClosed,
+        isRemoved: filters.isRemoved,
+        isReturned: filters.isReturned,
+      ),
+    );
+}
+
+void _requestItems(
+  BuildContext context,
+  AdminItemsFilters filters, {
+  int page = 1,
+  Object? search = _filterUnset,
+  Object? type = _filterUnset,
+  Object? isClosed = _filterUnset,
+  Object? isRemoved = _filterUnset,
+  Object? isReturned = _filterUnset,
+}) {
+  context.read<ModerationBloc>().add(
+    AdminItemsRequested(
+      page: page,
+      search: identical(search, _filterUnset)
+          ? filters.search
+          : search as String?,
+      type: identical(type, _filterUnset) ? filters.type : type as String?,
+      isClosed: identical(isClosed, _filterUnset)
+          ? filters.isClosed
+          : isClosed as bool?,
+      isRemoved: identical(isRemoved, _filterUnset)
+          ? filters.isRemoved
+          : isRemoved as bool?,
+      isReturned: identical(isReturned, _filterUnset)
+          ? filters.isReturned
+          : isReturned as bool?,
+    ),
+  );
 }
 
 const _activityFilters = <String?, String>{
@@ -47,7 +92,18 @@ const _activityFilters = <String?, String>{
   'claim.created': 'Réclamations',
   'message.sent': 'Messages',
   'admin.moderation': 'Modération',
+  'item.returned': 'Objets retrouvés',
+  'admin.user.suspension': 'Suspensions',
 };
+
+const _publicationFilters =
+    <({String label, bool? isClosed, bool? isRemoved, bool? isReturned})>[
+      (label: 'Toutes', isClosed: null, isRemoved: null, isReturned: null),
+      (label: 'Visibles', isClosed: null, isRemoved: false, isReturned: null),
+      (label: 'Masquées', isClosed: null, isRemoved: true, isReturned: null),
+      (label: 'Retrouvées', isClosed: null, isRemoved: null, isReturned: true),
+      (label: 'Clôturées', isClosed: true, isRemoved: null, isReturned: null),
+    ];
 
 const _navItems = <_NavItem>[
   _NavItem(Icons.dashboard_outlined, 'Vue d’ensemble'),
@@ -64,8 +120,13 @@ String _activityLabel(String type) =>
     _activityFilters[type] ??
     switch (type) {
       'auth.login' => 'Connexions',
-      'item.updated' || 'item.closed' || 'item.deleted' => 'Annonces',
-      'claim.status' || 'claim.returned' => 'Réclamations',
+      'item.created' ||
+      'item.updated' ||
+      'item.closed' ||
+      'item.deleted' => 'Annonces',
+      'item.returned' => 'Objets retrouvés',
+      'claim.created' || 'claim.status' || 'claim.returned' => 'Réclamations',
+      'admin.user.suspension' => 'Suspensions',
       _ => 'Autre',
     };
 
@@ -75,11 +136,13 @@ IconData _activityIcon(String type) => switch (type) {
   'item.updated' ||
   'item.closed' ||
   'item.deleted' => Icons.inventory_2_outlined,
+  'item.returned' => Icons.redeem_outlined,
   'claim.created' ||
   'claim.status' ||
   'claim.returned' => Icons.assignment_turned_in_outlined,
   'message.sent' => Icons.chat_bubble_outline,
   'admin.moderation' => Icons.shield_outlined,
+  'admin.user.suspension' => Icons.person_off_outlined,
   _ => Icons.bolt_outlined,
 };
 
@@ -89,11 +152,13 @@ _Tone _activityTone(String type) => switch (type) {
   'item.updated' ||
   'item.closed' ||
   'item.deleted' => const _Tone(Color(0xffe9f1fb), Color(0xff2563a6)),
+  'item.returned' => const _Tone(_brandSoft, _brand),
   'claim.created' ||
   'claim.status' ||
   'claim.returned' => const _Tone(_warningSoft, _warning),
   'message.sent' => const _Tone(Color(0xfff0ebfa), Color(0xff6b45a8)),
-  'admin.moderation' => const _Tone(_dangerSoft, _danger),
+  'admin.moderation' ||
+  'admin.user.suspension' => const _Tone(_dangerSoft, _danger),
   _ => const _Tone(_surface, _muted),
 };
 
@@ -127,6 +192,7 @@ class _AdminView extends StatefulWidget {
 class _AdminViewState extends State<_AdminView> {
   final _scrollController = ScrollController();
   final _searchController = TextEditingController();
+  final _publicationSearchController = TextEditingController();
   final _overviewKey = GlobalKey();
   final _activityKey = GlobalKey();
   final _itemsKey = GlobalKey();
@@ -146,6 +212,7 @@ class _AdminViewState extends State<_AdminView> {
   void dispose() {
     _scrollController.dispose();
     _searchController.dispose();
+    _publicationSearchController.dispose();
     super.dispose();
   }
 
@@ -372,10 +439,17 @@ class _AdminViewState extends State<_AdminView> {
           LayoutBuilder(
             builder: (context, constraints) {
               final activity = _ActivityPanel(key: _activityKey, state: state);
-              final moderation = _ModerationPanel(
+              final publications = _PublicationsPanel(
                 key: _itemsKey,
-                items: _filterItems(overview.items),
+                page: state.adminItemsPage,
+                items: _filterItems(
+                  state.adminItemsPage?.items ?? const <AdminItemSummary>[],
+                ),
+                filters: state.adminItemsFilters,
+                loading: state.adminItemsLoading,
+                failure: state.adminItemsFailure?.message,
                 busyItemId: state.busyItemId,
+                searchController: _publicationSearchController,
               );
               if (constraints.maxWidth >= 900) {
                 return Row(
@@ -383,12 +457,12 @@ class _AdminViewState extends State<_AdminView> {
                   children: [
                     Expanded(child: activity),
                     const SizedBox(width: 16),
-                    Expanded(child: moderation),
+                    Expanded(child: publications),
                   ],
                 );
               }
               return Column(
-                children: [activity, const SizedBox(height: 16), moderation],
+                children: [activity, const SizedBox(height: 16), publications],
               );
             },
           ),
@@ -397,6 +471,7 @@ class _AdminViewState extends State<_AdminView> {
             key: _usersKey,
             users: _filterUsers(overview.users),
             total: overview.users.length,
+            busyUserId: state.busyUserId,
           ),
         ],
       ),
@@ -535,6 +610,12 @@ class _MetricGrid extends StatelessWidget {
         value: overview.pendingClaimCount,
         icon: Icons.hourglass_top_outlined,
         tone: const _Tone(_dangerSoft, _danger),
+      ),
+      _Metric(
+        label: 'Objets retrouvés',
+        value: overview.returnedItems,
+        icon: Icons.redeem_outlined,
+        tone: const _Tone(_brandSoft, _brand),
       ),
       _Metric(
         label: 'Comptes aujourd’hui',
@@ -833,33 +914,155 @@ class _ActivityRow extends StatelessWidget {
   }
 }
 
-class _ModerationPanel extends StatelessWidget {
-  const _ModerationPanel({
+class _PublicationsPanel extends StatelessWidget {
+  const _PublicationsPanel({
     super.key,
+    required this.page,
     required this.items,
+    required this.filters,
+    required this.loading,
+    required this.failure,
     required this.busyItemId,
+    required this.searchController,
   });
 
+  final AdminItemPage? page;
   final List<AdminItemSummary> items;
+  final AdminItemsFilters filters;
+  final bool loading;
+  final String? failure;
   final String? busyItemId;
+  final TextEditingController searchController;
 
   @override
-  Widget build(BuildContext context) => _Panel(
-    icon: Icons.inventory_2_outlined,
-    title: 'Annonces à modérer',
-    subtitle: '${items.length} annonce(s) suivie(s)',
-    child: items.isEmpty
-        ? const _InlineMessage(
-            message: 'Aucune annonce ne correspond à la recherche.',
-            icon: Icons.check_circle_outline,
-          )
-        : Column(
+  Widget build(BuildContext context) {
+    final currentPage = page?.page ?? 1;
+    final totalPages = page?.totalPages ?? 1;
+    return _Panel(
+      icon: Icons.inventory_2_outlined,
+      title: 'Toutes les publications',
+      subtitle: '${items.length} publication(s) affichée(s)',
+      action: loading
+          ? const SizedBox.square(
+              dimension: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : null,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: searchController,
+            onSubmitted: (value) => _requestItems(
+              context,
+              filters,
+              search: value.trim().isEmpty ? null : value.trim(),
+            ),
+            decoration: InputDecoration(
+              hintText: 'Rechercher une publication…',
+              prefixIcon: const Icon(Icons.search, size: 18),
+              suffixIcon: IconButton(
+                icon: const Icon(Icons.arrow_forward, size: 18),
+                tooltip: 'Rechercher',
+                onPressed: () {
+                  final value = searchController.text.trim();
+                  _requestItems(
+                    context,
+                    filters,
+                    search: value.isEmpty ? null : value,
+                  );
+                },
+              ),
+              isDense: true,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 7,
+            runSpacing: 6,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              for (final item in items)
-                _ItemRow(item: item, busy: busyItemId == item.id),
+              for (final filter in _publicationFilters)
+                ChoiceChip(
+                  label: Text(filter.label),
+                  selected:
+                      filters.isClosed == filter.isClosed &&
+                      filters.isRemoved == filter.isRemoved &&
+                      filters.isReturned == filter.isReturned,
+                  visualDensity: VisualDensity.compact,
+                  onSelected: (_) => _requestItems(
+                    context,
+                    filters,
+                    isClosed: filter.isClosed,
+                    isRemoved: filter.isRemoved,
+                    isReturned: filter.isReturned,
+                  ),
+                ),
+              SizedBox(
+                width: 132,
+                child: DropdownButton<String?>(
+                  value: filters.type,
+                  isExpanded: true,
+                  hint: const Text('Type'),
+                  items: const [
+                    DropdownMenuItem<String?>(
+                      value: null,
+                      child: Text('Tous les types'),
+                    ),
+                    DropdownMenuItem(value: 'FOUND', child: Text('Trouvé')),
+                    DropdownMenuItem(value: 'LOST', child: Text('Perdu')),
+                  ],
+                  onChanged: (value) =>
+                      _requestItems(context, filters, type: value),
+                ),
+              ),
             ],
           ),
-  );
+          const SizedBox(height: 12),
+          if (failure != null && items.isEmpty)
+            _InlineMessage(message: failure!, icon: Icons.error_outline)
+          else if (items.isEmpty)
+            const _InlineMessage(
+              message: 'Aucune publication ne correspond à ces filtres.',
+              icon: Icons.check_circle_outline,
+            )
+          else
+            Column(
+              children: [
+                for (final item in items)
+                  _ItemRow(item: item, busy: busyItemId == item.id),
+              ],
+            ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              TextButton.icon(
+                onPressed: currentPage > 1 && !loading
+                    ? () =>
+                          _requestItems(context, filters, page: currentPage - 1)
+                    : null,
+                icon: const Icon(Icons.chevron_left),
+                label: const Text('Précédent'),
+              ),
+              Text(
+                'Page $currentPage / $totalPages',
+                style: const TextStyle(color: _muted, fontSize: 11),
+              ),
+              TextButton.icon(
+                onPressed: currentPage < totalPages && !loading
+                    ? () =>
+                          _requestItems(context, filters, page: currentPage + 1)
+                    : null,
+                icon: const Icon(Icons.chevron_right),
+                label: const Text('Suivant'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _ItemRow extends StatelessWidget {
@@ -900,6 +1103,30 @@ class _ItemRow extends StatelessWidget {
                       label: item.isRemoved ? 'Masquée' : 'Visible',
                       background: tone.background,
                       foreground: tone.foreground,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  children: [
+                    if (item.isReturned)
+                      const _SmallChip(
+                        label: 'Retrouvé',
+                        background: _brandSoft,
+                        foreground: _brand,
+                      ),
+                    if (item.isClosed)
+                      const _SmallChip(
+                        label: 'Clôturée',
+                        background: _warningSoft,
+                        foreground: _warning,
+                      ),
+                    _SmallChip(
+                      label: item.type == 'LOST' ? 'Perdu' : 'Trouvé',
+                      background: _surface,
+                      foreground: _muted,
                     ),
                   ],
                 ),
@@ -1029,11 +1256,60 @@ Future<void> _requestRemoval(
   );
 }
 
+Future<void> _requestSuspension(
+  BuildContext context,
+  AdminUserSummary user,
+) async {
+  final reasonController = TextEditingController();
+  final reason = await showDialog<String>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: Text('Suspendre le compte de ${user.name} ?'),
+      content: TextField(
+        controller: reasonController,
+        autofocus: true,
+        minLines: 2,
+        maxLines: 4,
+        decoration: const InputDecoration(
+          labelText: 'Motif de la suspension',
+          hintText: 'Indiquez le motif (3 caractères minimum)',
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(dialogContext),
+          child: const Text('Annuler'),
+        ),
+        FilledButton(
+          onPressed: () =>
+              Navigator.pop(dialogContext, reasonController.text.trim()),
+          child: const Text('Suspendre'),
+        ),
+      ],
+    ),
+  );
+  reasonController.dispose();
+  if (reason == null || reason.trim().length < 3 || !context.mounted) return;
+  context.read<ModerationBloc>().add(
+    AdminUserSuspensionChanged(
+      userId: user.id,
+      isSuspended: true,
+      reason: reason.trim(),
+    ),
+  );
+}
+
 class _UsersPanel extends StatelessWidget {
-  const _UsersPanel({super.key, required this.users, required this.total});
+  const _UsersPanel({
+    super.key,
+    required this.users,
+    required this.total,
+    required this.busyUserId,
+  });
 
   final List<AdminUserSummary> users;
   final int total;
+  final String? busyUserId;
 
   @override
   Widget build(BuildContext context) => _Panel(
@@ -1045,14 +1321,20 @@ class _UsersPanel extends StatelessWidget {
             message: 'Aucun compte ne correspond à la recherche.',
             icon: Icons.person_off_outlined,
           )
-        : Column(children: [for (final user in users) _UserRow(user: user)]),
+        : Column(
+            children: [
+              for (final user in users)
+                _UserRow(user: user, busy: busyUserId == user.id),
+            ],
+          ),
   );
 }
 
 class _UserRow extends StatelessWidget {
-  const _UserRow({required this.user});
+  const _UserRow({required this.user, required this.busy});
 
   final AdminUserSummary user;
+  final bool busy;
 
   @override
   Widget build(BuildContext context) {
@@ -1110,6 +1392,14 @@ class _UserRow extends StatelessWidget {
                 background: tone.background,
                 foreground: tone.foreground,
               ),
+              if (user.isSuspended) ...[
+                const SizedBox(width: 6),
+                const _SmallChip(
+                  label: 'Suspendu',
+                  background: _dangerSoft,
+                  foreground: _danger,
+                ),
+              ],
               if (detailed && user.createdAt != null) ...[
                 const SizedBox(width: 12),
                 SizedBox(
@@ -1120,6 +1410,37 @@ class _UserRow extends StatelessWidget {
                   ),
                 ),
               ],
+              const SizedBox(width: 8),
+              if (user.role == 'admin')
+                const SizedBox.shrink()
+              else if (busy)
+                const SizedBox.square(
+                  dimension: 22,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              else
+                TextButton.icon(
+                  onPressed: () => user.isSuspended
+                      ? context.read<ModerationBloc>().add(
+                          AdminUserSuspensionChanged(
+                            userId: user.id,
+                            isSuspended: false,
+                          ),
+                        )
+                      : _requestSuspension(context, user),
+                  icon: Icon(
+                    user.isSuspended ? Icons.restore : Icons.block,
+                    color: user.isSuspended ? _brand : _danger,
+                    size: 17,
+                  ),
+                  label: Text(
+                    user.isSuspended ? 'Rétablir' : 'Suspendre',
+                    style: TextStyle(
+                      color: user.isSuspended ? _brand : _danger,
+                      fontSize: 11,
+                    ),
+                  ),
+                ),
             ],
           ),
         );
