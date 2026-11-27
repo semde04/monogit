@@ -102,6 +102,33 @@ npm run create-admin
 
 Le mot de passe est haché en Argon2id. Aucun compte ni secret de production n’est versionné.
 
+## Équipe et rôles
+
+- Nitiema Eddy Martial — App lead : architecture Flutter, navigation, BLoC et portail admin.
+- Zongo Juste Landry — API lead : modèles, endpoints, JWT et autorisations.
+- Semde Aicha — Product / UX lead : parcours, wireframes, captures et design document.
+- Kagambega Geraldine — Quality lead : CI, tests, lints et builds de release.
+- Ouedraogo Corneille — Team lead : planification, intégration finale et documentation.
+
+Les PR principales de chaque membre sont liées dans `docs/report.pdf`, section 8.
+
+## Liens de déploiement
+
+- API : `https://lostfound-api-4kaz.onrender.com/api/v1`
+- Portail admin : `https://lostfound-admin-74fa4.web.app`
+- Dépôt : `https://github.com/semde04/monogit`
+- Release `v1.0.0` et APK : `[à compléter avant soutenance]`
+- Vidéo de démo (≤ 3 min) : `[à compléter avant soutenance]`
+- Issue board : `[à compléter avant soutenance]`
+
+## Comptes de test par rôle
+
+- Étudiant : `[email] / [mot de passe]` — rôle `user`, sans annonce.
+- Propriétaire : `[email] / [mot de passe]` — rôle `user`, avec au moins une annonce.
+- Administrateur : `[email] / [mot de passe]` — rôle `admin`.
+
+Ces identifiants doivent être renseignés avant la soutenance ; aucun secret de production n’est versionné.
+
 ## Limites connues
 
 - Les photos sont stockées en base en base64 (limite 800 000 caractères) ; aucun stockage objet n’est configuré.
