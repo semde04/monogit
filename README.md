@@ -15,6 +15,7 @@ Projet universitaire « Advanced Mobile Development » : API Express/TypeScript,
 - `app/lib/features/` — structure feature-first : `domain` (entities, repositories, usecases), `data` (models, datasources, repositories) et `presentation` (BLoC, pages).
 - Les écrans principaux sont `discover`, `items/:id`, `items/new`, `claims`, `chat/:claimId`, `profile` et `admin`.
 - Le portail web réutilise les mêmes couches domaine/données/présentation que l’application mobile, avec un build Flutter dédié.
+- Les états d’erreur, le cache local et le repli mémoire de session sont traités dans `app/lib/core/` et les blocs des features.
 
 ## Qualité
 
