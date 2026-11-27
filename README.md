@@ -9,6 +9,13 @@ Projet universitaire « Advanced Mobile Development » : API Express/TypeScript,
 - `docs/` — maquettes et livrables.
 - `.github/workflows/ci.yml` — typecheck/tests API, format/analyze/tests Flutter, build web et déploiement hosting.
 
+## Architecture applicative
+
+- `app/lib/core/` — configuration `API_BASE_URL`, client Dio, intercepteur de refresh, stockage de tokens, router GoRouter et notifications push.
+- `app/lib/features/` — structure feature-first : `domain` (entities, repositories, usecases), `data` (models, datasources, repositories) et `presentation` (BLoC, pages).
+- Les écrans principaux sont `discover`, `items/:id`, `items/new`, `claims`, `chat/:claimId`, `profile` et `admin`.
+- Le portail web réutilise les mêmes couches domaine/données/présentation que l’application mobile, avec un build Flutter dédié.
+
 ## Démarrage
 
 API :
