@@ -112,7 +112,7 @@ Le mot de passe est haché en Argon2id. Aucun compte ni secret de production n�
 - Kagambega Geraldine — Quality lead : CI, tests, lints et builds de release.
 - Ouedraogo Corneille — Team lead : planification, intégration finale et documentation.
 
-Les PR principales de chaque membre sont liées dans `docs/report.pdf`, section 8.
+Les PR principales de chaque membre sont liées dans `docs/report.pdf`, section 8. Les décisions intégrées sont la suspension réversible, le badge avec journal pour l’objet retrouvé et l’affichage de toutes les publications avec pagination.
 
 ## Liens de déploiement
 
