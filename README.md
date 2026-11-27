@@ -75,6 +75,10 @@ Base : `/api/v1`. `🔒` = access token Bearer requis, `👑` = rôle `admin` re
 | GET | `/admin/overview` | 👑 | Statistiques (dont comptes/actions du jour) et listes paginées |
 | GET | `/admin/activity` | 👑 | Journal paginé des activités (`?type=auth.register`...) |
 | PATCH | `/admin/items/:itemId/moderation` | 👑 | Retrait/rétablissement d’une annonce |
+| GET | `/admin/items` | 👑 | Toutes les publications, filtres `search`, `type`, `isClosed`, `isRemoved`, `isReturned` |
+| PATCH | `/admin/users/:userId/suspension` | 👑 | Suspension réversible d’un compte (`isSuspended`, motif obligatoire pour suspendre) |
+
+Un compte suspendu peut encore appeler `/auth/me` et `/auth/refresh`, mais les routes métier répondent `403 ACCOUNT_SUSPENDED`. La self-suspension et la suspension d’un compte admin sont refusées.
 
 Pagination : `?page=1&limit=20` sur toutes les listes ; `page` ≥ 1, `limit` entre 1 et 50. Les réponses de liste contiennent `{ "data": [...], "meta": { "page", "limit", "total", "totalPages" } }`. Les erreurs suivent `{ "error": "CODE", "message": "...", "details": ... }` (422 pour une validation échouée).
 
