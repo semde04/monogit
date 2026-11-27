@@ -15,6 +15,15 @@ Projet universitaire « Advanced Mobile Development » : API Express/TypeScript,
 - `app/lib/features/` — structure feature-first : `domain` (entities, repositories, usecases), `data` (models, datasources, repositories) et `presentation` (BLoC, pages).
 - Les écrans principaux sont `discover`, `items/:id`, `items/new`, `claims`, `chat/:claimId`, `profile` et `admin`.
 - Le portail web réutilise les mêmes couches domaine/données/présentation que l’application mobile, avec un build Flutter dédié.
+- Les états d’erreur, le cache local et le repli mémoire de session sont traités dans `app/lib/core/` et les blocs des features.
+
+## Qualité
+
+- API : `npm run typecheck` puis `npm test` dans `api/` — 21 tests d’intégration avec MongoDB de test.
+- Flutter : `dart format --output=none --set-exit-if-changed lib test`, `flutter analyze`, `flutter test` dans `app/` — 30 tests.
+- Dernier run CI vert sur `main` : `46067765719` (API, Flutter, build web et déploiement Firebase Hosting).
+- Aucun secret de production n’est versionné : `API_BASE_URL` et `FIREBASE_SERVICE_ACCOUNT` sont fournis par GitHub Actions.
+- Un scan de l’historique git doit être exécuté avant la soutenance pour confirmer l’absence de secrets.
 
 ## Démarrage
 
@@ -75,6 +84,10 @@ Base : `/api/v1`. `🔒` = access token Bearer requis, `👑` = rôle `admin` re
 | GET | `/admin/overview` | 👑 | Statistiques (dont comptes/actions du jour) et listes paginées |
 | GET | `/admin/activity` | 👑 | Journal paginé des activités (`?type=auth.register`...) |
 | PATCH | `/admin/items/:itemId/moderation` | 👑 | Retrait/rétablissement d’une annonce |
+| GET | `/admin/items` | 👑 | Toutes les publications, filtres `search`, `type`, `isClosed`, `isRemoved`, `isReturned` |
+| PATCH | `/admin/users/:userId/suspension` | 👑 | Suspension réversible d’un compte (`isSuspended`, motif obligatoire pour suspendre) |
+
+Un compte suspendu peut encore appeler `/auth/me` et `/auth/refresh`, mais les routes métier répondent `403 ACCOUNT_SUSPENDED`. La self-suspension et la suspension d’un compte admin sont refusées. La restitution finale journalise l’événement `item.returned`.
 
 Pagination : `?page=1&limit=20` sur toutes les listes ; `page` ≥ 1, `limit` entre 1 et 50. Les réponses de liste contiennent `{ "data": [...], "meta": { "page", "limit", "total", "totalPages" } }`. Les erreurs suivent `{ "error": "CODE", "message": "...", "details": ... }` (422 pour une validation échouée).
 
@@ -90,6 +103,34 @@ npm run create-admin
 ```
 
 Le mot de passe est haché en Argon2id. Aucun compte ni secret de production n’est versionné.
+
+## Équipe et rôles
+
+- Nitiema Eddy Martial — App lead : architecture Flutter, navigation, BLoC et portail admin.
+- Zongo Juste Landry — API lead : modèles, endpoints, JWT et autorisations.
+- Semde Aicha — Product / UX lead : parcours, wireframes, captures et design document.
+- Kagambega Geraldine — Quality lead : CI, tests, lints et builds de release.
+- Ouedraogo Corneille — Team lead : planification, intégration finale et documentation.
+
+Les PR principales de chaque membre sont liées dans `docs/report.pdf`, section 8. Les décisions intégrées sont la suspension réversible, le badge avec journal pour l’objet retrouvé et l’affichage de toutes les publications avec pagination.
+
+## Liens de déploiement
+
+- API : `https://lostfound-api-4kaz.onrender.com/api/v1`
+- Portail admin : `https://lostfound-admin-74fa4.web.app`
+- Dépôt : `https://github.com/semde04/monogit`
+- Release `v1.0.0` et APK : `[à compléter avant soutenance]`
+- Vidéo de démo (≤ 3 min) : `[à compléter avant soutenance]`
+- Issue board : `[à compléter avant soutenance]`
+- Design document et captures : `docs/design.pdf`, `docs/screenshots/`
+
+## Comptes de test par rôle
+
+- Étudiant : `[email] / [mot de passe]` — rôle `user`, sans annonce.
+- Propriétaire : `[email] / [mot de passe]` — rôle `user`, avec au moins une annonce.
+- Administrateur : `[email] / [mot de passe]` — rôle `admin`.
+
+Ces identifiants doivent être renseignés avant la soutenance ; aucun secret de production n’est versionné.
 
 ## Limites connues
 
