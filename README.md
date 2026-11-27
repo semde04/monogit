@@ -121,6 +121,7 @@ Les PR principales de chaque membre sont liées dans `docs/report.pdf`, section 
 - Release `v1.0.0` et APK : `[à compléter avant soutenance]`
 - Vidéo de démo (≤ 3 min) : `[à compléter avant soutenance]`
 - Issue board : `[à compléter avant soutenance]`
+- Design document et captures : `docs/design.pdf`, `docs/screenshots/`
 
 ## Comptes de test par rôle
 
