@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LostFound | Final presentation</title>
+<style>
+:root{--navy:#101b2d;--navy2:#1b2a44;--paper:#f7f5f0;--white:#fff;--ink:#17233a;--muted:#586579;--muted-light:#c3cfe0;--teal:#0f766e;--mint:#2dd4bf;--line:#e3dfd3;--amber:#e8a33a;--red:#c44f57}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#05080d;font-family:Inter,"Segoe UI",system-ui,sans-serif;color:var(--ink)}
+#stage{position:fixed;inset:0;display:grid;place-items:center;overflow:hidden}
+.slide{position:absolute;width:1920px;height:1080px;padding:92px 126px 112px;display:none;flex-direction:column;gap:30px;background:var(--paper);transform-origin:center;transform:scale(var(--s,.5));overflow:hidden}
+.slide.active{display:flex}.slide.dark{background:var(--navy);color:var(--paper)}
+h1,h2,h3{font-family:"Space Grotesk",Inter,"Segoe UI",sans-serif}
+h1{font-size:188px;line-height:.98;font-weight:700;letter-spacing:-7px}
+h2{font-size:72px;line-height:1.08;font-weight:700;letter-spacing:-2px;max-width:1580px}
+h3{font-size:38px;line-height:1.1;font-weight:700}
+.eyebrow{font-size:24px;letter-spacing:5px;text-transform:uppercase;color:var(--teal);font-weight:700}
+.dark .eyebrow{color:var(--mint)}
+.lead{font-size:40px;line-height:1.3;color:var(--muted);max-width:1450px}
+.dark .lead{color:var(--muted-light)}
+.small{font-size:28px;line-height:1.4}.tiny{font-size:23px;line-height:1.35;color:var(--muted)}
+.dark .tiny{color:var(--muted-light)}
+.row{display:flex;gap:28px;align-items:stretch}.row.mid{align-items:center}
+.col{display:flex;flex-direction:column;gap:22px}
+.card{flex:1;background:var(--white);border:2px solid var(--line);border-radius:26px;padding:36px;display:flex;flex-direction:column;gap:15px;min-width:0}
+.card p{font-size:29px;line-height:1.34;color:var(--muted)}
+.card.main{background:var(--teal);border-color:var(--teal);color:var(--white)}
+.card.main p,.card.main .kicker,.card.main .step{color:var(--white)}
+.dark .card{background:var(--navy2);border-color:#2a3d5e}.dark .card p{color:var(--muted-light)}
+.dark .card.main{background:var(--teal);border-color:var(--teal)}.dark .card.main p{color:var(--white)}
+.kicker{font-size:22px;letter-spacing:3px;text-transform:uppercase;color:var(--teal);font-weight:700}
+.step{font-size:56px;line-height:1;font-weight:750;color:var(--teal);font-family:"Space Grotesk",Inter,sans-serif}
+.pill{display:inline-flex;align-items:center;gap:10px;border:1px solid rgba(45,212,191,.4);background:rgba(45,212,191,.1);color:var(--mint);border-radius:99px;padding:12px 20px;font-size:22px;letter-spacing:1px;font-weight:700}
+.team{display:flex;flex-wrap:wrap;gap:12px 24px;max-width:1470px}.team span{font-size:24px;color:var(--muted-light);border-left:3px solid var(--mint);padding-left:13px}
+.banner{padding:21px 26px;border-radius:18px;background:#e8f4f0;color:#155e57;font-size:27px;line-height:1.3;font-weight:600}
+.dark .banner{background:#203a50;color:#d5f5ed}
+.timeline{display:flex;gap:15px;align-items:stretch;margin-top:6px}.timeline .card{padding:25px;gap:11px}.timeline .card p{font-size:24px}.timeline h3{font-size:31px}.timeline .step{font-size:48px}
+.shot-wrap{height:746px;display:flex;align-items:center;justify-content:center;background:#e9e8e2;border-radius:30px;padding:16px;overflow:hidden}
+.shot-wrap.phone{width:360px;height:620px;flex:none;background:#0d1117;border:7px solid #0d1117;border-radius:40px;padding:0}
+.shot-wrap.phone img{width:auto;max-width:100%;height:100%;object-fit:contain;border-radius:31px;background:#fff}
+.mobile-showcase{justify-content:center;gap:34px!important;margin-top:0!important}
+.mobile-showcase .shot-wrap.phone{width:300px;height:500px}
+.mobile-showcase .caption{font-size:18px;line-height:1.25;max-width:300px;margin:10px auto 0}
+.mobile-features{max-width:430px;gap:14px}
+.mobile-features .card{flex:none;padding:20px 24px;gap:8px;border-radius:20px}
+.mobile-features .card h3{font-size:30px}
+.mobile-features .card p{font-size:23px;line-height:1.25}
+.admin-showcase{gap:30px!important;margin-top:0!important}
+.admin-showcase .shot-wrap.admin{width:790px;height:505px}
+.admin-highlights{gap:14px;min-width:0}
+.admin-highlights .card{flex:none;padding:19px 24px;gap:8px;border-radius:20px}
+.admin-highlights .card .kicker{font-size:18px;letter-spacing:2px}
+.admin-highlights .card h3{font-size:30px;line-height:1.08}
+.admin-highlights .card p:not(.kicker){font-size:22px;line-height:1.23}
+.shot-wrap.admin{width:920px;height:585px;flex:none;background:#dfe5e2;padding:12px}
+.shot-wrap.admin img{width:100%;height:100%;object-fit:contain;border-radius:18px}
+.caption{font-size:21px;color:var(--muted);text-align:center;margin-top:12px}
+.arrow{font-size:54px;color:var(--mint);font-weight:300;flex:none}
+.architecture{display:flex;align-items:stretch;gap:22px;margin-top:4px}.architecture .stack{width:455px;display:flex;flex-direction:column;gap:18px}.architecture .card{padding:28px;min-height:165px}.architecture .card p{font-size:26px}.architecture .card h3{font-size:34px}
+table{border-collapse:collapse;width:100%;font-size:29px;margin-top:0}
+th,td{text-align:left;padding:19px 18px;border-bottom:1px solid #34465f;vertical-align:top}
+th{color:var(--mint);font-size:21px;letter-spacing:3px;text-transform:uppercase}
+td:first-child{font-weight:700;width:25%;color:#f7f5f0}
+.dark td{color:var(--muted-light)}
+.stat{font-size:78px;line-height:1;color:var(--teal);font-weight:750;font-family:"Space Grotesk",Inter,sans-serif}
+.card.main .stat{color:#fff}.link{color:var(--mint);font-size:25px;text-decoration:none;border-bottom:1px solid rgba(45,212,191,.6);padding-bottom:3px;overflow-wrap:anywhere}
+.url{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:21px;color:#c6d4e5;overflow-wrap:anywhere}
+.demo-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px 32px}
+#counter{position:fixed;right:34px;bottom:24px;z-index:4;color:#93a1b5;font-size:20px;font-variant-numeric:tabular-nums}
+#hint{position:fixed;left:20px;bottom:18px;font-size:15px;color:#8895aa;z-index:4}
+#notes{position:fixed;left:0;right:0;bottom:0;background:rgba(16,27,45,.97);color:#f7f5f0;padding:20px 32px;font-size:20px;line-height:1.45;display:none;z-index:5;border-top:1px solid #34465f}
+#notes.on{display:block}
+@media print{@page{size:1920px 1080px;margin:0}html,body{background:none;height:auto}#stage{position:static;display:block;overflow:visible}.slide{position:relative;display:flex!important;transform:none!important;page-break-after:always;break-after:page}#notes,#hint,#counter{display:none!important}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+</style>
+</head>
+<body>
+<main id="stage">
+
+<section class="slide dark active" data-note="Opening — Ouedraogo Corneille. Introduce the team and frame the goal: make campus item recovery easier while keeping identity and proof private. Hand off to Semde Aicha for the user problem.">
+  <p class="eyebrow">Advanced Mobile Development · Team T6</p>
+  <div class="col" style="gap:24px;margin-top:28px">
+    <h1>LostFound</h1>
+    <p class="lead">Find it. Claim it. Return it — without exposing private details.</p>
+  </div>
+  <div class="grow"></div>
+  <div class="team">
+    <span>Nitiema Eddy Martial · App lead</span>
+    <span>Zongo Juste Landry · API lead</span>
+    <span>Semde Aicha · Product &amp; UX</span>
+    <span>Kagambega Geraldine · Quality &amp; CI</span>
+    <span>Ouedraogo Corneille · Team lead</span>
+  </div>
+  <p class="tiny" style="margin-top:15px">Campus lost-and-found · Flutter, TypeScript and MongoDB</p>
+</section>
+
+<section class="slide" data-note="About 45 seconds — Semde Aicha. Describe the everyday scenario: a finder cannot safely identify the owner, while the owner has no trusted place to search. The product replaces scattered group chats with one campus workflow.">
+  <p class="eyebrow">The problem</p>
+  <h2>Lost property creates a coordination problem — and a privacy problem.</h2>
+  <div class="row" style="margin-top:18px">
+    <div class="card"><p class="kicker">The finder</p><h3>“Who should I give it to?”</h3><p>There is no reliable way to match an item with its owner without posting personal details publicly.</p></div>
+    <div class="card"><p class="kicker">The owner</p><h3>“Where should I look?”</h3><p>Announcements get scattered across class chats, and useful details are hard to search later.</p></div>
+  </div>
+  <div class="banner">Design goal: make the handover verifiable while keeping proof and conversation private.</div>
+</section>
+
+<section class="slide" data-note="About 45 seconds — Nitiema Eddy Martial. Explain the two roles. A student can be a finder on one post and a claimant on another. Admins use a separate web portal for moderation, account safety and activity oversight.">
+  <p class="eyebrow">The product</p>
+  <h2>One campus service, two kinds of users.</h2>
+  <div class="row" style="margin-top:18px">
+    <div class="card main"><p class="kicker">Student · finder or claimant</p><h3>Recover an item without public contact details.</h3><p>Sign up with a campus matricule, post a lost or found item, answer a private proof question, then chat and confirm the handover.</p></div>
+    <div class="card"><p class="kicker">Administrator</p><h3>Keep the campus space trustworthy.</h3><p>Review activity, remove or restore posts, suspend or reactivate accounts with a reason, and monitor service statistics.</p></div>
+  </div>
+  <div class="row" style="margin-top:2px">
+    <div class="banner" style="flex:1">Mobile app: Flutter + BLoC</div>
+    <div class="banner" style="flex:1">Admin portal: Flutter Web</div>
+    <div class="banner" style="flex:1">One shared REST API</div>
+  </div>
+</section>
+
+<section class="slide" data-note="About 1 minute — Zongo Juste Landry. Walk through the lifecycle. The claimant submits an answer, the finder accepts or rejects it, and only accepted claims can chat. The listing closes only after both sides confirm the return.">
+  <p class="eyebrow">The recovery journey</p>
+  <h2>A claim becomes a handover only after both people confirm.</h2>
+  <div class="timeline">
+    <div class="card"><p class="step">01</p><h3>Post</h3><p>Describe a lost or found item, its location and an optional photo.</p></div>
+    <div class="card"><p class="step">02</p><h3>Prove</h3><p>The claimant answers a detail only the owner should know.</p></div>
+    <div class="card"><p class="step">03</p><h3>Accept</h3><p>The finder reviews the answer. A private chat opens after acceptance.</p></div>
+    <div class="card"><p class="step">04</p><h3>Meet</h3><p>The two participants arrange the handover in the claim conversation.</p></div>
+    <div class="card main"><p class="step">05</p><h3>Confirm</h3><p>Both confirm. The post closes and a return record is saved.</p></div>
+  </div>
+  <div class="banner">Push notifications keep participants informed about new claims, decisions and return confirmations.</div>
+</section>
+
+<section class="slide" data-note="About 1 minute — Semde Aicha. Use the real screens to show the product is implemented, not just wireframed. Point to the item detail and claim action, then the private conversation. The public detail response omits the proof question.">
+  <p class="eyebrow">The mobile experience</p>
+  <h2>The mobile flow, from search to chat.</h2>
+  <div class="row mid mobile-showcase" style="justify-content:center;gap:46px;margin-top:2px">
+    <div><div class="shot-wrap phone"><img src="screenshots/detail%20de%20l%27annonce.png" alt="LostFound mobile item detail with a claim action"></div><p class="caption">Item detail · claim entry point</p></div>
+    <div class="arrow">→</div>
+    <div><div class="shot-wrap phone"><img src="screenshots/interieur%20de%20conversation.jpeg" alt="Private conversation between claim participants"></div><p class="caption">Private conversation · tied to an accepted claim</p></div>
+    <div class="col mobile-features" style="max-width:470px">
+      <div class="card"><h3>Discover</h3><p>Search and filter posts by item type and category.</p></div>
+      <div class="card"><h3>Claim safely</h3><p>Answer the proof question without publishing contact information.</p></div>
+      <div class="card"><h3>Keep the context</h3><p>Messages stay attached to the accepted claim.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="slide dark" data-note="About 1 minute — Zongo Juste Landry. Explain that neither client connects directly to MongoDB. The Express API owns authentication, validation, permissions and data access. The same Flutter codebase builds the admin web portal.">
+  <p class="eyebrow">The architecture</p>
+  <h2>One API is the security and data boundary.</h2>
+  <div class="architecture">
+    <div class="stack">
+      <div class="card"><p class="kicker">Client 1</p><h3>Flutter mobile</h3><p>BLoC · GoRouter · Dio · secure token storage</p></div>
+      <div class="card"><p class="kicker">Client 2</p><h3>Flutter Web admin</h3><p>Same feature layers · role-protected portal</p></div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="card main" style="width:440px;flex:none;justify-content:center"><p class="kicker">Render</p><h3>Express 5 API</h3><p>TypeScript · Zod · JWT · Argon2id</p><p>Auth · items · claims · messages · admin</p></div>
+    <div class="arrow">→</div>
+    <div class="stack">
+      <div class="card"><p class="kicker">Managed database</p><h3>MongoDB Atlas</h3><p>Users · items · claims · messages · activity</p></div>
+      <div class="card"><p class="kicker">Firebase services</p><h3>Hosting + push</h3><p>Admin web hosting · Firebase Cloud Messaging</p></div>
+    </div>
+  </div>
+  <div class="banner">Only the API connects to MongoDB. Both clients call the same versioned REST API: <code>/api/v1</code>.</div>
+</section>
+
+<section class="slide dark" data-note="About 1 minute — Kagambega Geraldine. Make the BOLA point concrete: ownership is checked in the API service, not trusted from a button in the app. Messages are limited to the claimant and item owner. The public item detail excludes proof questions.">
+  <p class="eyebrow">Security &amp; privacy</p>
+  <h2>Authorization is checked on every protected action.</h2>
+  <table>
+    <tr><th>Threat</th><th>Control in the implementation</th></tr>
+    <tr><td>BOLA / ID guessing</td><td>Owner and claim-participant checks run in API services; unrelated users cannot close posts or read chats.</td></tr>
+    <tr><td>Proof disclosure</td><td>Public item detail omits the proof question; the claimant’s answer is visible to the claim participants.</td></tr>
+    <tr><td>Stolen refresh token</td><td>Refresh tokens are stored hashed and rotated; reuse revokes the user’s active sessions.</td></tr>
+    <tr><td>Weak credentials</td><td>Passwords use Argon2id; access JWTs expire after 15 minutes.</td></tr>
+    <tr><td>Abuse / oversized data</td><td>Rate limiting, Zod validation, capped pagination and an 800 KB image limit.</td></tr>
+  </table>
+  <p class="tiny">The mobile app never receives database credentials.</p>
+</section>
+
+<section class="slide" data-note="About 1 minute — Ouedraogo Corneille. Show the real admin screen. Describe reversible moderation and user suspension with a reason, the activity timeline and paginated account/post lists. The portal requires the admin role at the API, not only in the UI.">
+  <p class="eyebrow">The admin portal</p>
+  <h2>A portal for safe campus operations.</h2>
+  <div class="row mid admin-showcase" style="gap:40px;margin-top:4px">
+    <div class="shot-wrap admin"><img src="screenshots/admin_vue_d%27ensemble.png" alt="LostFound Admin overview with account, post, claim and activity metrics"></div>
+    <div class="col admin-highlights" style="flex:1">
+      <div class="card"><p class="kicker">Overview</p><h3>See what needs attention</h3><p>Accounts, posts, claims, pending work, returns and activity today.</p></div>
+      <div class="card"><p class="kicker">Moderation</p><h3>Remove, restore, explain</h3><p>Posts can be hidden and reinstated; removal records a reason and an admin action.</p></div>
+      <div class="card main"><p class="kicker">Account safety</p><h3>Suspend or reactivate</h3><p>Admin-only action with a reason, guarded against self-suspension and admin suspension.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="slide" data-note="About 45 seconds — Kagambega Geraldine. State the verified counts from the repository: 21 API integration tests and 30 Flutter tests. The GitHub Actions workflow checks the API and Flutter app for pull requests; after successful checks, a push to main builds and deploys the admin web portal to Firebase Hosting.">
+  <p class="eyebrow">Quality &amp; delivery</p>
+  <h2>Every change passes checks before the web portal deploys.</h2>
+  <div class="row" style="margin-top:8px">
+    <div class="card"><p class="stat">21</p><h3>API integration tests</h3><p>Auth, refresh rotation, BOLA, claims, messages, moderation and pagination.</p></div>
+    <div class="card"><p class="stat">30</p><h3>Flutter tests</h3><p>BLoC, moderation, claims, messages, auth and key widgets.</p></div>
+    <div class="card main"><p class="stat">CI</p><h3>Checks then deploy</h3><p>Typecheck + API tests · Dart format + Flutter analyze/tests · web build + Hosting deploy.</p></div>
+  </div>
+  <div class="banner">The CI API job runs Node 24 with a MongoDB 7 service; the admin web deploy runs on pushes to <code>main</code>.</div>
+</section>
+
+<section class="slide dark" data-note="About 45 seconds — Nitiema Eddy Martial. Emphasize the handover receipt as a product decision: an accepted claim alone does not mark the item returned. Both people confirm, after which the API closes the item and records who found and received it, plus the confirmation time.">
+  <p class="eyebrow">A handover with accountability</p>
+  <h2>An accepted claim is not yet a returned item.</h2>
+  <div class="row mid" style="margin-top:12px">
+    <div class="card" style="max-width:500px"><p class="kicker">Confirmation 1</p><h3>The finder confirms the handover.</h3><p>The item stays open until the other participant confirms too.</p></div>
+    <div class="arrow">+</div>
+    <div class="card" style="max-width:500px"><p class="kicker">Confirmation 2</p><h3>The claimant confirms receipt.</h3><p>Only the two people in the accepted claim can confirm.</p></div>
+    <div class="arrow">→</div>
+    <div class="card main" style="max-width:500px"><p class="kicker">Saved return record</p><h3>Both confirmations close the listing.</h3><p>A receipt stores the item, finder, recipient and confirmation time. The event is added to the activity log.</p></div>
+  </div>
+  <p class="tiny">The workflow avoids closing a post after only one person says the handover happened.</p>
+</section>
+
+<section class="slide" data-note="About 45 seconds — Semde Aicha. Be candid about current trade-offs. Base64 is simple for the demonstration but grows the database; object storage is the next step. Search is suitable for the current campus dataset but should move to indexed text search as data grows. Push delivery depends on registered Firebase installations and deployment secrets.">
+  <p class="eyebrow">Trade-offs &amp; next steps</p>
+  <h2>We chose a working campus flow and know where to scale next.</h2>
+  <div class="row" style="margin-top:12px">
+    <div class="card"><p class="kicker">Images</p><h3>Simple storage today</h3><p>Images are stored as base64 and capped at 800 KB. Next: object storage with signed URLs.</p></div>
+    <div class="card"><p class="kicker">Search</p><h3>Right-sized for the demo</h3><p>Regex search is easy to deploy. Next: dedicated indexes or full-text search for larger datasets.</p></div>
+    <div class="card"><p class="kicker">Notifications</p><h3>Service credentials required</h3><p>Push depends on valid Firebase installation tokens and server credentials configured outside Git.</p></div>
+  </div>
+  <div class="banner">Current strengths: reversible admin actions, audit history, bounded pagination and two-person return confirmation.</div>
+</section>
+
+<section class="slide dark" data-note="Closing and demo — all team members. Start with the live portal or mobile app. Suggested live path: browse a post, sign in as claimant, submit a claim, accept it as finder, exchange a private message, confirm return from both accounts, then show the receipt and activity entry. Keep a recorded demo ready if connectivity fails. No demo credentials are included in the deck.">
+  <p class="eyebrow">Live demo · Q&amp;A</p>
+  <h2>One item. Two people. A confirmed return.</h2>
+  <div class="demo-grid" style="margin-top:10px">
+    <div class="card"><p class="kicker">Admin portal</p><h3>Live web experience</h3><a class="link" href="https://lostfound-admin-74fa4.web.app" target="_blank" rel="noreferrer">lostfound-admin-74fa4.web.app</a></div>
+    <div class="card"><p class="kicker">API health</p><h3>Production API</h3><a class="link" href="https://lostfound-api-4kaz.onrender.com/api/v1/health" target="_blank" rel="noreferrer">lostfound-api-4kaz.onrender.com/api/v1/health</a></div>
+    <div class="card"><p class="kicker">Walkthrough</p><p>Browse → claim → accept → chat → both confirm → show the return record.</p></div>
+    <div class="card main"><p class="kicker">Thank you</p><h3>Questions?</h3><p>LostFound · Advanced Mobile Development · Team T6</p></div>
+  </div>
+  <div class="team" style="margin-top:8px">
+    <span>Nitiema Eddy Martial</span><span>Zongo Juste Landry</span><span>Semde Aicha</span><span>Kagambega Geraldine</span><span>Ouedraogo Corneille</span>
+  </div>
+</section>
+
+</main>
+<div id="counter">01 / 12</div>
+<div id="notes"></div>
+<div id="hint">← → navigate · N speaker notes · F fullscreen · Ctrl+P export PDF</div>
+<script>
+(function(){
+  var slides=Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var i=0,notes=document.getElementById('notes'),counter=document.getElementById('counter');
+  function fit(){var scale=Math.min(innerWidth/1920,innerHeight/1080);slides.forEach(function(slide){slide.style.setProperty('--s',scale)})}
+  function show(next){
+    i=Math.max(0,Math.min(slides.length-1,next));
+    slides.forEach(function(slide,index){slide.classList.toggle('active',index===i)});
+    notes.textContent=slides[i].getAttribute('data-note')||'';
+    counter.textContent=String(i+1).padStart(2,'0')+' / '+String(slides.length).padStart(2,'0');
+    try{history.replaceState(null,'','#'+(i+1))}catch(error){}
+  }
+  addEventListener('resize',fit);
+  addEventListener('keydown',function(event){
+    if(['ArrowRight','PageDown',' ','Enter'].indexOf(event.key)>-1){event.preventDefault();show(i+1)}
+    else if(['ArrowLeft','PageUp','Backspace'].indexOf(event.key)>-1){event.preventDefault();show(i-1)}
+    else if(event.key==='Home')show(0);
+    else if(event.key==='End')show(slides.length-1);
+    else if(event.key==='n'||event.key==='N')notes.classList.toggle('on');
+    else if(event.key==='f'||event.key==='F'){document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen()}
+  });
+  document.getElementById('stage').addEventListener('click',function(event){
+    if(event.target.closest('a'))return;
+    show(event.clientX>innerWidth/2?i+1:i-1);
+  });
+  fit();show((parseInt(location.hash.slice(1),10)||1)-1);
+})();
+</script>
+</body>
+</html>
